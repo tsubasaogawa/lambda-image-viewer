@@ -1,17 +1,46 @@
 package main
 
 import (
-	"io"
-	"net/http"
+	_ "embed"
+
+	"text/template"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
+    "github.com/aws/aws-lambda-go/events"
+)
+
+type Photo struct {
+	Url string
+}
+
+var (
+	//go:embed templates/index.html.tmpl
+	tmpl string
 )
 
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "aws labs http adapter response!!")
-	})
+	lambda.Start(index)
+}
 
-	lambda.Start(httpadapter.New(http.DefaultServeMux).ProxyWithContext)
+func index(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	param := strings.TrimPrefix(r.Path, "/")
+	_tmpl, err := template.New("index").Parse(tmpl)
+	if err != nil {
+		panic(err)
+	}
+
+	w := new(strings.Builder)
+	photo := Photo{Url: "https://photo.ogatube.com/" + param}
+	if err = _tmpl.Execute(w, photo); err != nil {
+		panic(err)
+	}
+
+	return events.APIGatewayProxyResponse{
+        Body: w.String(),
+        Headers: map[string]string{
+            "Content-Type": "text/html; charset=utf-8",
+        },
+        StatusCode: 200,
+    }, nil
 }
