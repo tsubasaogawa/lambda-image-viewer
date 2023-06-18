@@ -24,12 +24,8 @@ func main() {
 	lambda.Start(index)
 }
 
-func index(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	key, ok := r.QueryStringParameters["key"]
-	if !ok {
-		msg := "parameters are invalid"
-		return response(msg, 400), fmt.Errorf(msg)
-	}
+func index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
+	key := strings.TrimPrefix(r.RawPath, "/")
 
 	_tmpl, err := template.New("index").Parse(tmpl)
 	if err != nil {
@@ -47,8 +43,8 @@ func index(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, err
 	return response(w.String(), 200), nil
 }
 
-func response(body string, status int) events.APIGatewayProxyResponse {
-	return events.APIGatewayProxyResponse{
+func response(body string, status int) events.LambdaFunctionURLResponse {
+	return events.LambdaFunctionURLResponse{
 		Body: body,
 		Headers: map[string]string{
 			"Content-Type": "text/html; charset=utf-8",
