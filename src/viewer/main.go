@@ -3,11 +3,12 @@ package main
 import (
 	_ "embed"
 
-	"text/template"
+	"fmt"
 	"strings"
+	"text/template"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-    "github.com/aws/aws-lambda-go/events"
 )
 
 type Photo struct {
@@ -24,23 +25,34 @@ func main() {
 }
 
 func index(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	param := strings.TrimPrefix(r.Path, "/")
+	key, ok := r.QueryStringParameters["key"]
+	if !ok {
+		msg := "parameters are invalid"
+		return response(msg, 400), fmt.Errorf(msg)
+	}
+
 	_tmpl, err := template.New("index").Parse(tmpl)
 	if err != nil {
-		panic(err)
+		msg := "template parsing error"
+		return response(msg, 500), fmt.Errorf(msg)
 	}
 
 	w := new(strings.Builder)
-	photo := Photo{Url: "https://photo.ogatube.com/" + param}
+	photo := Photo{Url: "https://photo.ogatube.com/" + key}
 	if err = _tmpl.Execute(w, photo); err != nil {
-		panic(err)
+		msg := "template execution error"
+		return response(msg, 500), fmt.Errorf(msg)
 	}
 
+	return response(w.String(), 200), nil
+}
+
+func response(body string, status int) events.APIGatewayProxyResponse {
 	return events.APIGatewayProxyResponse{
-        Body: w.String(),
-        Headers: map[string]string{
-            "Content-Type": "text/html; charset=utf-8",
-        },
-        StatusCode: 200,
-    }, nil
+		Body: body,
+		Headers: map[string]string{
+			"Content-Type": "text/html; charset=utf-8",
+		},
+		StatusCode: status,
+	}
 }
