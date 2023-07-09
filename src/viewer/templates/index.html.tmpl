@@ -2,9 +2,19 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Photo Viewer</title>
+    <title>Photo Viewer {{ .Metadata.Title }}</title>
   </head>
   <body>
-    <img src="{{ .Url }}" />
+    <div><img src="{{ .Url }}" /></div>
+    <div>
+      <ul>
+        <li>{{ .Metadata.Title }}</li>
+        <li>{{ .Metadata.Timestamp }}</li>
+        <li>{{ .Metadata.Camera }}</li>
+        <li>{{ .Metadata.Lens }}</li>
+        <li>{{ .Metadata.F }}</li>
+        <li>{{ .Metadata.FocalLength }}</li>
+      </ul>
+    </div>
   </body>
 </html>
