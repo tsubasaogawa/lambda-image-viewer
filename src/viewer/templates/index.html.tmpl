@@ -3,17 +3,56 @@
   <head>
     <meta charset="UTF-8">
     <title>Photo Viewer {{ .Metadata.Title }}</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+    <style media="screen">
+    <!--
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Open Sans', sans-serif;
+      }
+
+      div#photo {
+        height: 100vh;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-image: url({{ .Url }});
+      }
+
+      ul#exif {
+        text-align: center;
+        list-style-type: none;
+        margin-top: 4rem;
+      }
+
+      li#title {
+        font-size: 1.2rem;
+        font-weight: bold;
+      }
+
+      li#camera, li#lens {
+        font-size: 1.1rem;
+      }
+
+      li#camera, li#focal_length, li#F, li#SS, li#ISO {
+        display: inline;
+      }
+    -->
+    </style>
   </head>
   <body>
-    <div><img src="{{ .Url }}" /></div>
+    <div id="photo"></div>
     <div>
-      <ul>
-        <li>{{ .Metadata.Title }}</li>
-        <li>{{ .Metadata.Timestamp }}</li>
-        <li>{{ .Metadata.Camera }}</li>
-        <li>{{ .Metadata.Lens }}</li>
-        <li>{{ .Metadata.F }}</li>
-        <li>{{ .Metadata.FocalLength }}</li>
+      <ul id="exif">
+        <li id="title">{{ .Metadata.Title }}</li>
+        <li id="camera">{{ .Metadata.Camera }}</li>
+        <li id="lens">{{ .Metadata.Lens }}</li>
+        <li id="focal_length">{{ .Metadata.FocalLength }}mm</li>
+        <li id="F">F{{ .Metadata.F }}</li>
+        <li id="SS">{{ .Metadata.SS }}s</li>
+        <li id="ISO">ISO{{ .Metadata.ISO }}</li>
+        <li id="timestamp">{{ .Metadata.Timestamp }}</li>
       </ul>
     </div>
   </body>
