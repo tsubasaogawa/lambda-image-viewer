@@ -13,6 +13,8 @@ type Metadata struct {
 	Exposure    string
 	F           float64
 	FocalLength int
+	ISO         int
+	SS          string
 }
 
 const (
