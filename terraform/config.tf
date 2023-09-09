@@ -11,3 +11,14 @@ provider "aws" {
     }
   }
 }
+
+provider "aws" {
+  region = "us-east-1"
+  alias = "n_virginia"
+
+  default_tags {
+    tags = {
+      repository = "tsubasaogawa/lambda-image-viewer"
+    }
+  }
+}
