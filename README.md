@@ -4,13 +4,15 @@ A simple image viewer using AWS Lambda + CloudFront + DynamoDB + S3.
 
 ## Features
 
-![Screenshot](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/a44fe384-49bc-4b6a-ad44-35d8b331f42a)
+![Screenshot](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/ec35bdf9-1446-4f5c-a85e-3a82940aeef3)
+
 
 - No ALB or API Gateway. The viewer uses Lambda Function URLs.
 - The viewer shows EXIF from DynamoDB.
 - CloudFront delivery.
 
-![DynamoDB item example](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/c49ad3ba-6123-4196-8cb3-fc9019703229)
+![DynamoDB item example](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/3ff31067-5d92-4d71-8bb5-8b2568558fc8)
+
 
 ## Requirements
 
