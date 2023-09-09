@@ -4,6 +4,7 @@ import (
 	_ "embed"
 
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -43,7 +44,7 @@ func index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 	}
 
 	photo := Photo{
-		Url:      "https://photo.ogatube.com/" + key,
+		Url:      fmt.Sprintf("https://%s/%s", os.Getenv("ORIGIN_DOMAIN"), key),
 		Metadata: meta,
 	}
 

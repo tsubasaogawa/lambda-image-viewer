@@ -35,6 +35,7 @@ functions:
     url: true
     environment:
       REGION: ${env:REGION}
+      ORIGIN_DOMAIN: ${env:ORIGIN_DOMAIN}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
 
 useDotenv: true
