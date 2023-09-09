@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Photo Viewer {{ .Metadata.Title }}</title>
+    <title>{{ .Metadata.Title }}</title>
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
     <style media="screen">
     <!--
@@ -31,11 +31,11 @@
         font-weight: bold;
       }
 
-      li#camera, li#lens {
+      li#camera/lens {
         font-size: 1.1rem;
       }
 
-      li#camera, li#focal_length, li#F, li#SS, li#ISO {
+      li#camera/lens, li#focal_length, li#F, li#SS, li#ISO {
         display: inline;
       }
     -->
@@ -46,14 +46,14 @@
     <div>
       <ul id="exif">
         <li id="title">{{ .Metadata.Title }}</li>
-        <li id="camera">{{ .Metadata.Camera }}</li>
-        <li id="lens">{{ .Metadata.Lens }}</li>
-        <li id="focal_length">{{ .Metadata.FocalLength }}mm</li>
-        <li id="F">F{{ .Metadata.F }}</li>
-        <li id="SS">{{ .Metadata.SS }}s</li>
-        <li id="ISO">ISO{{ .Metadata.ISO }}</li>
-        <li id="timestamp">{{ .Metadata.Timestamp }}</li>
+        <li id="camera/lens">{{ .Metadata.Camera }} / {{ .Metadata.Lens }}</li>
+        <li id="focal_length">{{ .Metadata.FocalLength }}mm, F{{ .Metadata.F }}, {{ .Metadata.SS }}s, ISO{{ .Metadata.ISO }}</li>
+        <li id="timestamp"></li>
       </ul>
     </div>
+  <script>
+    const dt = new Date({{ .Metadata.Timestamp }} * 1000);
+    document.querySelector('#timestamp').insertAdjacentText('afterbegin', `Shot on ${dt.toLocaleString()}`);
+  </script>
   </body>
 </html>
