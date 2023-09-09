@@ -2,10 +2,10 @@ service: lambda-image-viewer
 
 provider:
   name: aws
-  runtime: go1.x
+  runtime: go1.x # TODO
   memorySize: 256
 
-  region: ap-northeast-1
+  region: ${env:REGION}
 
   iamRoleStatements:
     - Effect: "Allow"
