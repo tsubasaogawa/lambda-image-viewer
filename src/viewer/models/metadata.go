@@ -17,11 +17,6 @@ type Metadata struct {
 	SS          string
 }
 
-const (
-	REGION = "ap-northeast-1"
-	TABLE  = "photo.ogatube.com-item"
-)
-
 func (t *Table) GetMetadata(id string) (*Metadata, error) {
 	meta := Metadata{}
 

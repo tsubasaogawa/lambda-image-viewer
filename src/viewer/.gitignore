@@ -2,3 +2,4 @@ bin
 
 # Serverless directories
 .serverless
+.env
