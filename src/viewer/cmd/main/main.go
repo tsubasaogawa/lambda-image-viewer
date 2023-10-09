@@ -11,7 +11,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/models"
+	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/models"
 )
 
 type Photo struct {
