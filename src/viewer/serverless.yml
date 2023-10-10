@@ -24,18 +24,35 @@ provider:
       Resource: "*"
 
 package:
-  exclude:
-    - ./**
-  include:
-    - ./bin/**
+  individually: true
 
 functions:
-  main:
-    handler: bin/main
+  viewer:
+    handler: bin/viewer
     url: true
     environment:
       REGION: ${env:REGION}
       ORIGIN_DOMAIN: ${env:ORIGIN_DOMAIN}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
+    package:
+      include:
+        - bin/viewer
+
+  tagger:
+    handler: bin/tagger
+    url: false
+    environment:
+      REGION: ${env:REGION}
+      TABLE: "${env:ORIGIN_DOMAIN}-item"
+    package:
+      include:
+        - bin/tagger
+    events:
+      - s3:
+          bucket: ${env:ORIGIN_DOMAIN}
+          event: "s3:ObjectCreated:*"
+          rules:
+            - suffix: .jpg
+          existing: true
 
 useDotenv: true
