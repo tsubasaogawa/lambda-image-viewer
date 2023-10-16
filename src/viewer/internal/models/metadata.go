@@ -6,7 +6,7 @@ import (
 
 type Metadata struct {
 	Id          string
-	Timestamp   int
+	Timestamp   int64
 	Title       string
 	Camera      string
 	Lens        string

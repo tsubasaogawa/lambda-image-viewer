@@ -46,7 +46,7 @@ functions:
       TABLE: "${env:ORIGIN_DOMAIN}-item"
 
   tagger:
-    handler: cmd/tagger/tagger.go
+    handler: cmd/tagger/*.go
     url: false
     environment:
       REGION: ${env:REGION}
