@@ -47,16 +47,21 @@ func Index(ctx context.Context, event events.S3Event) {
 }
 
 func FillMetadataByExif(e *exif.Exif) *models.Metadata {
+	var ts int64 = 0
+	if dt, err := e.DateTime(); err == nil {
+		ts = dt.Unix()
+	}
 	return &models.Metadata{
-		Timestamp:   datetime2unixtime(getExifField(e, exif.DateTime).(string)),
-		Title:       getExifField(e, exif.ImageDescription).(string),
+		Id:          "",
+		Timestamp:   ts,
+		Title:       getExifField(e, exif.ImageDescription).(string), // TODO: The field may be always empty when we use Lightroom
 		Camera:      getExifField(e, exif.Model).(string),
 		Lens:        getExifField(e, exif.LensModel).(string),
-		Exposure:    getExifField(e, exif.ExposureBiasValue).(string),
-		F:           calcFNumber(getExifField(e, exif.FNumber).(string)),
-		FocalLength: calcFocalLength(getExifField(e, exif.FocalLength).(string)),
+		Exposure:    getExifField(e, exif.ExposureBiasValue).(float64),
+		F:           getExifField(e, exif.FNumber).(float64),
+		FocalLength: int(getExifField(e, exif.FocalLength).(float64)),
 		ISO:         int(getExifField(e, exif.ISOSpeedRatings).(int64)),
-		SS:          calcShutterSpeed(getExifField(e, exif.ShutterSpeedValue).(string)),
+		SS:          calcShutterSpeed(getExifField(e, exif.ShutterSpeedValue).(float64)),
 	}
 }
 
@@ -65,6 +70,7 @@ func getExifField(e *exif.Exif, n exif.FieldName) interface{} {
 	if err != nil {
 		return ""
 	}
+	fmt.Printf("%s's Format: %d\n", n, tag.Format())
 
 	switch tag.Format() {
 	case tiff.StringVal:
@@ -79,7 +85,13 @@ func getExifField(e *exif.Exif, n exif.FieldName) interface{} {
 		} else {
 			return f
 		}
+	case tiff.RatVal:
+		if nm, dn, err := tag.Rat2(0); err != nil {
+			return 0
+		} else {
+			return float64(nm) / float64(dn)
+		}
+	default:
+		return ""
 	}
-
-	return ""
 }

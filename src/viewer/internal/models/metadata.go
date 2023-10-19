@@ -10,7 +10,7 @@ type Metadata struct {
 	Title       string
 	Camera      string
 	Lens        string
-	Exposure    string
+	Exposure    float64
 	F           float64
 	FocalLength int
 	ISO         int
