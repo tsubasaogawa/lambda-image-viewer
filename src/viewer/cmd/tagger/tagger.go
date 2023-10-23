@@ -40,17 +40,26 @@ func Index(ctx context.Context, event events.S3Event) {
 			log.Fatal(err)
 		}
 
-		fmt.Printf("%s\n", e.String())
-		meta := FillMetadataByExif(e)
+		meta, err := FillMetadataByExif(e)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		meta.Id = r.S3.Object.Key
 		fmt.Printf("%#v", *meta)
+
+		if err := models.New().PutMetadata(meta); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
-func FillMetadataByExif(e *exif.Exif) *models.Metadata {
-	var ts int64 = 0
-	if dt, err := e.DateTime(); err == nil {
-		ts = dt.Unix()
+func FillMetadataByExif(e *exif.Exif) (*models.Metadata, error) {
+	ts, err := getLocalUnixtime(e)
+	if err != nil {
+		return nil, err
 	}
+
 	return &models.Metadata{
 		Id:          "",
 		Timestamp:   ts,
@@ -62,7 +71,15 @@ func FillMetadataByExif(e *exif.Exif) *models.Metadata {
 		FocalLength: int(getExifField(e, exif.FocalLength).(float64)),
 		ISO:         int(getExifField(e, exif.ISOSpeedRatings).(int64)),
 		SS:          calcShutterSpeed(getExifField(e, exif.ShutterSpeedValue).(float64)),
+	}, nil
+}
+
+func getLocalUnixtime(e *exif.Exif) (int64, error) {
+	dt, err := e.DateTime()
+	if err != nil {
+		return 0, err
 	}
+	return dt.Unix(), nil
 }
 
 func getExifField(e *exif.Exif, n exif.FieldName) interface{} {

@@ -5,7 +5,6 @@ import (
 
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -69,8 +68,7 @@ func response(body string, status int) events.LambdaFunctionURLResponse {
 }
 
 func getId(key string) string {
-	extlen := len(filepath.Ext(key))
-	return key[0 : len(key)-extlen]
+	return key
 }
 
 func getMetadata(id string) (models.Metadata, error) {
