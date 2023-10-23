@@ -5,7 +5,6 @@ import (
 
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -25,10 +24,10 @@ var (
 )
 
 func main() {
-	lambda.Start(index)
+	lambda.Start(Index)
 }
 
-func index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
+func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
 	key := strings.TrimPrefix(r.RawPath, "/")
 
 	_tmpl, err := template.New("index").Parse(tmpl)
@@ -69,11 +68,13 @@ func response(body string, status int) events.LambdaFunctionURLResponse {
 }
 
 func getId(key string) string {
-	extlen := len(filepath.Ext(key))
-	return key[0 : len(key)-extlen]
+	return key
 }
 
 func getMetadata(id string) (models.Metadata, error) {
 	m, err := models.New().GetMetadata(id)
-	return *m, err
+	if err != nil {
+		return models.Metadata{}, err
+	}
+	return *m, nil
 }

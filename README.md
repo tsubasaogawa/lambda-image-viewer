@@ -6,9 +6,9 @@ A simple image viewer using AWS Lambda + CloudFront + DynamoDB + S3.
 
 ![Screenshot](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/ec35bdf9-1446-4f5c-a85e-3a82940aeef3)
 
-
 - No ALB or API Gateway. The viewer uses Lambda Function URLs.
-- The viewer shows EXIF from DynamoDB.
+- The viewer shows some EXIFs from DynamoDB.
+- S3-event-driven Tagger gets EXIF by a photo and puts to DynamoDB.
 - CloudFront delivery.
 
 ![DynamoDB item example](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/3ff31067-5d92-4d71-8bb5-8b2568558fc8)
@@ -18,7 +18,7 @@ A simple image viewer using AWS Lambda + CloudFront + DynamoDB + S3.
 
 - Serverless Framework v3.34
 - Terraform v1.5.0
-- Go 1.18
+- Go 1.21
 - AWS
 
 You can also use **env to install easily.
@@ -72,12 +72,6 @@ terraform apply
 aws s3 cp <PHOTO FILE> s3://<CREATED S3 BUCKET>/<FILE NAME>
 ```
 
-And you should add an item to DynamoDB table created by Terraform.
-
-
 ## Future Works
 
-- Use `provided.al2` Lambda runtime instead of `go1.x`
-- Image uploader.
-  - Uploading image to S3
-  - Adding an item to DynamoDB
+- Fix design

@@ -2,8 +2,9 @@ service: lambda-image-viewer
 
 provider:
   name: aws
-  runtime: go1.x # TODO
+  runtime: provided.al2
   memorySize: 256
+  versionFunctions: false
 
   region: ${env:REGION}
 
@@ -24,18 +25,38 @@ provider:
       Resource: "*"
 
 package:
-  exclude:
-    - ./**
-  include:
-    - ./bin/**
+  individually: true
+
+plugins:
+  - serverless-go-plugin
+
+custom:
+  go:
+    cmd: GOARCH=amd64 GOOS=linux go build -tags lambda.norpc
+    supportedRuntimes: ["provided.al2"]
+    buildProvidedRuntimeAsBootstrap: true
 
 functions:
-  main:
-    handler: bin/main
+  viewer:
+    handler: cmd/viewer/viewer.go
     url: true
     environment:
       REGION: ${env:REGION}
       ORIGIN_DOMAIN: ${env:ORIGIN_DOMAIN}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
+
+  tagger:
+    handler: cmd/tagger/*.go
+    url: false
+    environment:
+      REGION: ${env:REGION}
+      TABLE: "${env:ORIGIN_DOMAIN}-item"
+    events:
+      - s3:
+          bucket: ${env:ORIGIN_DOMAIN}
+          event: "s3:ObjectCreated:*"
+          rules:
+            - suffix: .jpg
+          existing: true
 
 useDotenv: true
