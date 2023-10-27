@@ -2,6 +2,8 @@
 
 A simple image viewer using AWS Lambda + CloudFront + DynamoDB + S3.
 
+![Diagram](./docs/diagram.drawio.png)
+
 ## Features
 
 ![Screenshot](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/ec35bdf9-1446-4f5c-a85e-3a82940aeef3)
