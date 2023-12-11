@@ -55,7 +55,7 @@ vim terraform/terraform.tfvars
 ```bash
 cd src/viewer
 
-make
+serverless deploy
 # Building go binary, deploying lambda using serverless
 ```
 
