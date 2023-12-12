@@ -10,12 +10,12 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/models"
+	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
 )
 
 type Photo struct {
 	Url      string
-	Metadata models.Metadata
+	Metadata model.Metadata
 }
 
 var (
@@ -71,10 +71,10 @@ func getId(key string) string {
 	return key
 }
 
-func getMetadata(id string) (models.Metadata, error) {
-	m, err := models.New().GetMetadata(id)
+func getMetadata(id string) (model.Metadata, error) {
+	m, err := model.New().GetMetadata(id)
 	if err != nil {
-		return models.Metadata{}, err
+		return model.Metadata{}, err
 	}
 	return *m, nil
 }

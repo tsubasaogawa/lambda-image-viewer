@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/models"
-
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
 
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/tiff"
@@ -48,19 +47,19 @@ func Index(ctx context.Context, event events.S3Event) {
 		meta.Id = r.S3.Object.Key
 		fmt.Printf("%#v", *meta)
 
-		if err := models.New().PutMetadata(meta); err != nil {
+		if err := model.New().PutMetadata(meta); err != nil {
 			log.Fatal(err)
 		}
 	}
 }
 
-func FillMetadataByExif(e *exif.Exif) (*models.Metadata, error) {
+func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 	ts, err := getLocalUnixtime(e)
 	if err != nil {
 		return nil, err
 	}
 
-	return &models.Metadata{
+	return &model.Metadata{
 		Id:          "",
 		Timestamp:   ts,
 		Title:       getExifField(e, exif.ImageDescription).(string), // TODO: The field may be always empty when we use Lightroom
