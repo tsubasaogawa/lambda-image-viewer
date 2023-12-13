@@ -5,16 +5,16 @@ import (
 )
 
 type Metadata struct {
-	Id          string
-	Timestamp   int64
-	Title       string
-	Camera      string
-	Lens        string
-	Exposure    float64
-	F           float64
-	FocalLength int
-	ISO         int
-	SS          string
+	Id          string  `json:"id"`
+	Timestamp   int64   `json:"timestamp"`
+	Title       string  `json:"title"`
+	Camera      string  `json:"camera"`
+	Lens        string  `json:"lens"`
+	Exposure    float64 `json:"exposure"`
+	F           float64 `json:"f"`
+	FocalLength int     `json:"focal_length"`
+	ISO         int     `json:"iso"`
+	SS          string  `json:"shutter_speed"`
 }
 
 func (t *Table) GetMetadata(id string) (*Metadata, error) {
