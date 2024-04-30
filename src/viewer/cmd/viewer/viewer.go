@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"encoding/json"
+	"log"
 
 	"fmt"
 	"os"
@@ -57,8 +58,8 @@ func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
 
 	meta, err := model.New().GetMetadata(getId(key))
 	if err != nil {
-		msg := "obtaining metadata error"
-		return responseHtml(msg, 500), fmt.Errorf(msg)
+		fmt.Println("obtaining metadata error")
+		meta = &model.Metadata{}
 	}
 
 	image := Image{
@@ -79,8 +80,10 @@ func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
 func generateMetadataJson(key string) (events.LambdaFunctionURLResponse, error) {
 	meta, err := model.New().GetMetadata(getId(key))
 	if err != nil {
-		msg := `{"error": "obtaining metadata error"}`
-		return responseJson(msg, 500), fmt.Errorf(msg)
+		msg := fmt.Sprintf(`{"error": "obtaining metadata error, but skips that", "details": "%s"}`, err.Error())
+		log.Println(msg)
+		return responseJson("{}", 200), nil
+		// return responseJson(msg, 500), fmt.Errorf(msg)
 	}
 
 	_json, err := json.Marshal(*meta)
