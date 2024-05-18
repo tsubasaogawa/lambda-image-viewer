@@ -36,7 +36,8 @@ func Index(ctx context.Context, event events.S3Event) {
 		}
 		e, err := exif.Decode(obj.Body)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			e = &exif.Exif{}
 		}
 
 		meta, err := FillMetadataByExif(e)
