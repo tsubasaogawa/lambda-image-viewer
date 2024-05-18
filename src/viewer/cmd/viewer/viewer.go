@@ -2,6 +2,8 @@ package main
 
 import (
 	_ "embed"
+	"encoding/json"
+	"log"
 
 	"fmt"
 	"os"
@@ -10,12 +12,12 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/models"
+	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
 )
 
-type Photo struct {
+type Image struct {
 	Url      string
-	Metadata models.Metadata
+	Metadata model.Metadata
 }
 
 var (
@@ -28,53 +30,89 @@ func main() {
 }
 
 func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
-	key := strings.TrimPrefix(r.RawPath, "/")
+	p := strings.SplitN(strings.TrimPrefix(r.RawPath, "/"), "/", 2)
+	if p == nil {
+		msg := "path parsing error"
+		return responseHtml(msg, 500), fmt.Errorf(msg)
+	}
+	route := p[0]
+	key := p[1]
 
+	switch route {
+	case "image":
+		return generateImageHtml(key)
+	case "metadata":
+		return generateMetadataJson(key)
+	default:
+		msg := "no route error"
+		return responseHtml(msg, 500), fmt.Errorf(msg)
+	}
+}
+
+func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
 	_tmpl, err := template.New("index").Parse(tmpl)
 	if err != nil {
 		msg := "template parsing error"
-		return response(msg, 500), fmt.Errorf(msg)
+		return responseHtml(msg, 500), fmt.Errorf(msg)
 	}
 
-	meta, err := getMetadata(getId(key))
+	meta, err := model.New().GetMetadata(getId(key))
 	if err != nil {
-		msg := "obtaining metadata error"
-		return response(msg, 500), fmt.Errorf(msg)
+		fmt.Println("obtaining metadata error")
+		meta = &model.Metadata{}
 	}
 
-	photo := Photo{
+	image := Image{
 		Url:      fmt.Sprintf("https://%s/%s", os.Getenv("ORIGIN_DOMAIN"), key),
-		Metadata: meta,
+		Metadata: *meta,
 	}
 
 	w := new(strings.Builder)
 
-	if err = _tmpl.Execute(w, photo); err != nil {
+	if err = _tmpl.Execute(w, image); err != nil {
 		msg := "template execution error"
-		return response(msg, 500), fmt.Errorf(msg)
+		return responseHtml(msg, 500), fmt.Errorf(msg)
 	}
 
-	return response(w.String(), 200), nil
+	return responseHtml(w.String(), 200), nil
 }
 
-func response(body string, status int) events.LambdaFunctionURLResponse {
+func generateMetadataJson(key string) (events.LambdaFunctionURLResponse, error) {
+	meta, err := model.New().GetMetadata(getId(key))
+	if err != nil {
+		msg := fmt.Sprintf(`{"error": "obtaining metadata error, but skips that", "details": "%s"}`, err.Error())
+		log.Println(msg)
+		return responseJson("{}", 200), nil
+		// return responseJson(msg, 500), fmt.Errorf(msg)
+	}
+
+	_json, err := json.Marshal(*meta)
+	if err != nil {
+		msg := `{"error": "json marshal error"}`
+		return responseJson(msg, 500), fmt.Errorf(msg)
+	}
+
+	return responseJson(string(_json), 200), nil
+}
+
+func response(body, _type string, status int) events.LambdaFunctionURLResponse {
 	return events.LambdaFunctionURLResponse{
 		Body: body,
 		Headers: map[string]string{
-			"Content-Type": "text/html; charset=utf-8",
+			"Content-Type": _type,
 		},
 		StatusCode: status,
 	}
 }
 
-func getId(key string) string {
-	return key
+func responseHtml(body string, status int) events.LambdaFunctionURLResponse {
+	return response(body, "text/html; charset=utf-8", status)
 }
 
-func getMetadata(id string) (models.Metadata, error) {
-	m, err := models.New().GetMetadata(id)
-	if err != nil {
-		return models.Metadata{}, err
-	}
-	return *m, nil
+func responseJson(body string, status int) events.LambdaFunctionURLResponse {
+	return response(body, "application/json; charset=utf-8", status)
+}
+
+func getId(key string) string {
+	return key
 }
