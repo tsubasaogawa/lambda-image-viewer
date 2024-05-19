@@ -87,7 +87,6 @@ func getExifField(e *exif.Exif, n exif.FieldName) interface{} {
 	if err != nil {
 		return ""
 	}
-	fmt.Printf("%s's Format: %d\n", n, tag.Format())
 
 	switch tag.Format() {
 	case tiff.StringVal:
