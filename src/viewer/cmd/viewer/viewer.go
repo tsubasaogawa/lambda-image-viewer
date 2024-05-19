@@ -31,8 +31,8 @@ func main() {
 
 func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
 	p := strings.SplitN(strings.TrimPrefix(r.RawPath, "/"), "/", 2)
-	if p == nil {
-		msg := "path parsing error"
+	if p == nil || len(p) < 2 {
+		msg := "path parsing error. path=" + r.RawPath
 		return responseHtml(msg, 500), fmt.Errorf(msg)
 	}
 	route := p[0]
@@ -58,7 +58,7 @@ func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
 
 	meta, err := model.New().GetMetadata(getId(key))
 	if err != nil {
-		fmt.Println("obtaining metadata error")
+		log.Println("obtaining metadata error. viewer uses empty metadata.")
 		meta = &model.Metadata{}
 	}
 
