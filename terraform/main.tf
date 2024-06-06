@@ -28,6 +28,14 @@ module "origin" {
   })
 }
 
+resource "aws_s3_object" "metadata_fetcher" {
+  bucket       = module.origin.s3_bucket_id
+  key          = "assets/metadata_fetcher.js"
+  content      = replace(file("assets/metadata_fetcher.js.tftpl"), "$${TF_API_ENDPOINT}", var.viewer_domain)
+  source_hash  = filemd5("assets/metadata_fetcher.js.tftpl")
+  content_type = "text/javascript"
+}
+
 resource "aws_acm_certificate" "viewer" {
   domain_name       = var.viewer_domain
   validation_method = "DNS"

@@ -1,8 +1,5 @@
 document.addEventListener("DOMContentLoaded", async function () {
-    if (typeof mfApiEndpoint === 'undefined') {
-        throw new Error('mfApiEndpoint is required');
-    }
-
+    const mfApiEndpoint = 'https://${TF_API_ENDPOINT}/metadata';
     const imgs = document.getElementsByClassName("load-exif");
     const getPathFromUrl = function (url) {
         return url.split("/").slice(3).join("/");
