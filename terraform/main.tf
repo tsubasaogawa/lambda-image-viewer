@@ -90,15 +90,29 @@ resource "aws_cloudfront_distribution" "viewer" {
       "HEAD",
     ]
     compress                   = true
-    default_ttl                = 0
-    max_ttl                    = 0
-    min_ttl                    = 0
     origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
     response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63" # CORS-with-preflight-and-SecurityHeadersPolicy
     smooth_streaming           = false
     target_origin_id           = var.lambda_url
-    trusted_key_groups         = []
-    trusted_signers            = []
+    viewer_protocol_policy     = "allow-all"
+  }
+
+  ordered_cache_behavior {
+    path_pattern = "/cameraroll/*"
+    allowed_methods = [
+      "GET",
+      "HEAD",
+    ]
+    cache_policy_id = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
+    cached_methods = [
+      "GET",
+      "HEAD",
+    ]
+    compress                   = true
+    origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
+    response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63" # CORS-with-preflight-and-SecurityHeadersPolicy
+    smooth_streaming           = false
+    target_origin_id           = var.lambda_url
     viewer_protocol_policy     = "allow-all"
   }
 
