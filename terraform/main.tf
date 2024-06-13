@@ -158,4 +158,15 @@ resource "aws_dynamodb_table" "item" {
     name = "Id"
     type = "S"
   }
+
+  attribute {
+    name = "Timestamp"
+    type = "N"
+  }
+
+  global_secondary_index {
+    hash_key        = "Timestamp"
+    name            = "Timestamp"
+    projection_type = "KEYS_ONLY"
+  }
 }
