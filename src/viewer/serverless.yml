@@ -38,7 +38,7 @@ custom:
 
 functions:
   viewer:
-    handler: cmd/viewer/viewer.go
+    handler: cmd/viewer/*.go
     url: true
     environment:
       REGION: ${env:REGION}

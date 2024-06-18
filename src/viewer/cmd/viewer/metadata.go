@@ -14,15 +14,15 @@ func generateMetadataJson(key string) (events.LambdaFunctionURLResponse, error) 
 	if err != nil {
 		msg := fmt.Sprintf(`{"error": "obtaining metadata error, but skips that", "details": "%s"}`, err.Error())
 		log.Println(msg)
-		return responseJson("{}", 200), nil
+		return responseJson("{}", 200, Headers{}), nil
 		// return responseJson(msg, 500), fmt.Errorf(msg)
 	}
 
 	_json, err := json.Marshal(*meta)
 	if err != nil {
 		msg := `{"error": "json marshal error"}`
-		return responseJson(msg, 500), fmt.Errorf(msg)
+		return responseJson(msg, 500, Headers{}), fmt.Errorf(msg)
 	}
 
-	return responseJson(string(_json), 200), nil
+	return responseJson(string(_json), 200, Headers{"Cache-Control": "public, max-age=31536000"}), nil
 }

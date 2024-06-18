@@ -20,11 +20,11 @@ type Image struct {
 
 var (
 	//go:embed templates/index.html.tmpl
-	tmpl string
+	imgTmpl string
 )
 
 func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
-	_tmpl, err := template.New("index").Parse(tmpl)
+	_tmpl, err := template.New("index").Parse(imgTmpl)
 	if err != nil {
 		msg := "template parsing error"
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
@@ -48,5 +48,5 @@ func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
 	}
 
-	return responseHtml(w.String(), 200, Headers{}), nil
+	return responseHtml(w.String(), 200, Headers{"Cache-Control": "public, max-age=31536000"}), nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"maps"
 
 	"fmt"
@@ -24,6 +25,7 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 	}
 	route := p[0]
 	key := p[1]
+	log.Printf("route=%s, key=%s\n", route, key)
 
 	switch route {
 	case "image":
@@ -51,6 +53,7 @@ func responseHtml(body string, status int, headers Headers) events.LambdaFunctio
 	return response(body, status, headers)
 }
 
-func responseJson(body string, status int) events.LambdaFunctionURLResponse {
-	return response(body, status, Headers{"Content-Type": "application/json; charset=utf-8"})
+func responseJson(body string, status int, headers Headers) events.LambdaFunctionURLResponse {
+	maps.Copy(headers, Headers{"Content-Type": "application/json; charset=utf-8"})
+	return response(body, status, headers)
 }
