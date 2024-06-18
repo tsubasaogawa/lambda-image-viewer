@@ -20,8 +20,12 @@ var (
 	crTmpl string
 )
 
-func generateCamerarollHtml(key string) (events.LambdaFunctionURLResponse, error) {
-	log.Printf("https://%s/%s", os.Getenv("ORIGIN_DOMAIN"), key)
+type CameraRollData struct {
+	Thumbnails   *[]model.Thumbnail
+	OriginDomain string
+}
+
+func generateCamerarollHtml() (events.LambdaFunctionURLResponse, error) {
 	thumbs, lk, err := model.New().ListThumbnails(MAX_THUMBNAIL_PER_PAGE, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -34,7 +38,9 @@ func generateCamerarollHtml(key string) (events.LambdaFunctionURLResponse, error
 	}
 
 	w := new(strings.Builder)
-	cr.Execute(w, thumbs)
+	if err = cr.Execute(w, CameraRollData{thumbs, os.Getenv("ORIGIN_DOMAIN")}); err != nil {
+		return responseHtml("", 500, Headers{}), err
+	}
 
 	return responseHtml(w.String(), 200, Headers{"Cache-Control": "private"}), nil
 }

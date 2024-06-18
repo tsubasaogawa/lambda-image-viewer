@@ -42,8 +42,9 @@
   </head>
   <body>
     <ul>
-      {{ range $i, $thumb := . }}
-        <li>{{ $thumb.Id }}</li>
+      {{ $origin := .OriginDomain }}
+      {{ range $i, $thumb := .Thumbnails }}
+        <li><img src="https://{{ $origin }}/{{ $thumb.Id }}" width="100" height="100" /></li>
       {{ end }}
     </ul>
   </body>

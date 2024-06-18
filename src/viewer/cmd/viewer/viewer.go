@@ -33,7 +33,7 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 	case "metadata":
 		return generateMetadataJson(key)
 	case "cameraroll":
-		return generateCamerarollHtml(key)
+		return generateCamerarollHtml()
 	default:
 		msg := "no route error"
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
