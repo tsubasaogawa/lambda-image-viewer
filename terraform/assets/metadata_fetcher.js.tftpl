@@ -5,7 +5,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         return url.split("/").slice(3).join("/");
     };
     const formatMetadata = function (data) {
-        return `${data["camera"]} (${data["lens"]}), ${data["focal_length"]}mm, f/${data["f"]}, ISO ${data["iso"]}, ${data["shutter_speed"]} sec, ${data["exposure"]} EV`;
+        const f = data["f"] || "-";
+        return `${data["camera"]} (${data["lens"]}), ${data["focal_length"]}mm, f/${f}, ISO ${data["iso"]}, ${data["shutter_speed"]} sec, ${data["exposure"]} EV`;
     };
 
     const requests = Array.from(imgs).map(async (img) => {

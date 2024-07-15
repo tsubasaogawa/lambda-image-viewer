@@ -59,6 +59,10 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 	if err != nil {
 		return nil, err
 	}
+	f, ok := getExifField(e, exif.FNumber).(float64)
+	if !ok {
+		f = 0.0
+	}
 
 	return &model.Metadata{
 		Id:          "",
@@ -67,7 +71,7 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 		Camera:      getExifField(e, exif.Model).(string),
 		Lens:        getExifField(e, exif.LensModel).(string),
 		Exposure:    getExifField(e, exif.ExposureBiasValue).(float64),
-		F:           getExifField(e, exif.FNumber).(float64),
+		F:           f,
 		FocalLength: int(getExifField(e, exif.FocalLength).(float64)),
 		ISO:         int(getExifField(e, exif.ISOSpeedRatings).(int64)),
 		SS:          calcShutterSpeed(getExifField(e, exif.ShutterSpeedValue).(float64)),
