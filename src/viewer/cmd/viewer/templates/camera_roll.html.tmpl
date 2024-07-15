@@ -44,7 +44,13 @@
     <ul>
       {{ $origin := .OriginDomain }}
       {{ range $i, $thumb := .Thumbnails }}
-        <li><img src="https://{{ $origin }}/{{ $thumb.Id }}" width="100" height="100" /></li>
+        <li>
+          <ul>
+            <!-- TODO: create thumbnail image, dynamic width & height -->
+            <li><img src="https://{{ $origin }}/{{ $thumb.Id }}" width="100" height="100" /></li>
+            <li>&lt;img class="load-exif" src="https://{{ $origin }}/{{ $thumb.Id }}" width="1028" height="684" loading="lazy"&gt;</li>
+          </ul>
+        </li>
       {{ end }}
     </ul>
   </body>
