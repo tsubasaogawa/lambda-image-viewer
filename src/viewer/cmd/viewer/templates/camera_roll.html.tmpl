@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Camera Roll</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+    <style media="screen">
+    <!--
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Open Sans', sans-serif;
+      }
+
+      div#image {
+        height: 100vh;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center center;
+      }
+
+      ul#exif {
+        text-align: center;
+        list-style-type: none;
+        margin-top: 4rem;
+      }
+
+      li#title {
+        font-size: 1.2rem;
+        font-weight: bold;
+      }
+
+      li#camera/lens {
+        font-size: 1.1rem;
+      }
+
+      li#camera/lens, li#focal_length, li#F, li#SS, li#ISO {
+        display: inline;
+      }
+    -->
+    </style>
+  </head>
+  <body>
+    <ul>
+      {{ $origin := .OriginDomain }}
+      {{ $lk := .LastKey }}
+      {{ range $i, $thumb := .Thumbnails }}
+        <li>
+          <ul>
+            <!-- TODO: create thumbnail image, dynamic width & height -->
+            <li><img src="https://{{ $origin }}/{{ $thumb.Id }}" width="100" height="100" /></li>
+            <li>&lt;img class="load-exif" src="https://{{ $origin }}/{{ $thumb.Id }}" width="1028" height="684" loading="lazy"&gt;</li>
+          </ul>
+        </li>
+      {{ end }}
+    </ul>
+    <p>
+      {{ if ne $lk "" }}
+        <a href="/cameraroll/{{ $lk }}">Next</a>
+      {{ end }}
+    </p>
+  </body>
+</html>

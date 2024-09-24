@@ -1,29 +1,21 @@
 package main
 
 import (
-	_ "embed"
-	"encoding/json"
+	"encoding/base64"
 	"log"
+	"maps"
 
 	"fmt"
-	"os"
 	"strings"
-	"text/template"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/guregu/dynamo"
 )
 
-type Image struct {
-	Url      string
-	Metadata model.Metadata
-}
-
-var (
-	//go:embed templates/index.html.tmpl
-	tmpl string
-)
+type Headers map[string]string
 
 func main() {
 	lambda.Start(Index)
@@ -33,86 +25,49 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 	p := strings.SplitN(strings.TrimPrefix(r.RawPath, "/"), "/", 2)
 	if p == nil || len(p) < 2 {
 		msg := "path parsing error. path=" + r.RawPath
-		return responseHtml(msg, 500), fmt.Errorf(msg)
+		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
 	}
 	route := p[0]
 	key := p[1]
+	log.Printf("route=%s, key=%s\n", route, key)
 
 	switch route {
 	case "image":
 		return generateImageHtml(key)
 	case "metadata":
 		return generateMetadataJson(key)
+	case "cameraroll":
+		if key == "" {
+			return generateCamerarollHtml(nil)
+		}
+		parts := strings.SplitN(key, "/", 2)
+		id, _ := base64.URLEncoding.DecodeString(parts[0])
+		ts, _ := base64.URLEncoding.DecodeString(parts[1])
+
+		return generateCamerarollHtml(dynamo.PagingKey{
+			"Id":        &dynamodb.AttributeValue{S: aws.String(string(id))},
+			"Timestamp": &dynamodb.AttributeValue{N: aws.String(string(ts))},
+		})
 	default:
 		msg := "no route error"
-		return responseHtml(msg, 500), fmt.Errorf(msg)
+		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
 	}
 }
 
-func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
-	_tmpl, err := template.New("index").Parse(tmpl)
-	if err != nil {
-		msg := "template parsing error"
-		return responseHtml(msg, 500), fmt.Errorf(msg)
-	}
-
-	meta, err := model.New().GetMetadata(getId(key))
-	if err != nil {
-		log.Println("obtaining metadata error. viewer uses empty metadata.")
-		meta = &model.Metadata{}
-	}
-
-	image := Image{
-		Url:      fmt.Sprintf("https://%s/%s", os.Getenv("ORIGIN_DOMAIN"), key),
-		Metadata: *meta,
-	}
-
-	w := new(strings.Builder)
-
-	if err = _tmpl.Execute(w, image); err != nil {
-		msg := "template execution error"
-		return responseHtml(msg, 500), fmt.Errorf(msg)
-	}
-
-	return responseHtml(w.String(), 200), nil
-}
-
-func generateMetadataJson(key string) (events.LambdaFunctionURLResponse, error) {
-	meta, err := model.New().GetMetadata(getId(key))
-	if err != nil {
-		msg := fmt.Sprintf(`{"error": "obtaining metadata error, but skips that", "details": "%s"}`, err.Error())
-		log.Println(msg)
-		return responseJson("{}", 200), nil
-		// return responseJson(msg, 500), fmt.Errorf(msg)
-	}
-
-	_json, err := json.Marshal(*meta)
-	if err != nil {
-		msg := `{"error": "json marshal error"}`
-		return responseJson(msg, 500), fmt.Errorf(msg)
-	}
-
-	return responseJson(string(_json), 200), nil
-}
-
-func response(body, _type string, status int) events.LambdaFunctionURLResponse {
+func response(body string, status int, headers Headers) events.LambdaFunctionURLResponse {
 	return events.LambdaFunctionURLResponse{
-		Body: body,
-		Headers: map[string]string{
-			"Content-Type": _type,
-		},
+		Body:       body,
+		Headers:    headers,
 		StatusCode: status,
 	}
 }
 
-func responseHtml(body string, status int) events.LambdaFunctionURLResponse {
-	return response(body, "text/html; charset=utf-8", status)
+func responseHtml(body string, status int, headers Headers) events.LambdaFunctionURLResponse {
+	maps.Copy(headers, Headers{"Content-Type": "text/html; charset=utf-8"})
+	return response(body, status, headers)
 }
 
-func responseJson(body string, status int) events.LambdaFunctionURLResponse {
-	return response(body, "application/json; charset=utf-8", status)
-}
-
-func getId(key string) string {
-	return key
+func responseJson(body string, status int, headers Headers) events.LambdaFunctionURLResponse {
+	maps.Copy(headers, Headers{"Content-Type": "application/json; charset=utf-8"})
+	return response(body, status, headers)
 }
