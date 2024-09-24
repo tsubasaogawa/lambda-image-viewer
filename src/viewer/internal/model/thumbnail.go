@@ -11,12 +11,12 @@ type Thumbnail struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-func (t *Table) ListThumbnails(max int64, lastKey dynamo.PagingKey) (*[]Thumbnail, dynamo.PagingKey, error) {
+func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]Thumbnail, dynamo.PagingKey, error) {
 	var thumbs []Thumbnail
 
 	scan := t.Scan().Index("Timestamp").SearchLimit(max)
-	if lastKey != nil {
-		scan = scan.StartFrom(lastKey)
+	if scanKey != nil {
+		scan = scan.StartFrom(scanKey)
 	}
 
 	lastKey, err := scan.AllWithLastEvaluatedKey(&thumbs)

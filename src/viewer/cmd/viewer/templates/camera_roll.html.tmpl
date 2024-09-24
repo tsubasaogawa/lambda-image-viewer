@@ -43,6 +43,7 @@
   <body>
     <ul>
       {{ $origin := .OriginDomain }}
+      {{ $lk := .LastKey }}
       {{ range $i, $thumb := .Thumbnails }}
         <li>
           <ul>
@@ -53,5 +54,6 @@
         </li>
       {{ end }}
     </ul>
+    <p><a href="/cameraroll/{{ $lk }}">Next</a></p>
   </body>
 </html>

@@ -2,12 +2,15 @@ package main
 
 import (
 	_ "embed"
+	"encoding/base64"
+	"fmt"
 	"html/template"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/guregu/dynamo"
 	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
 )
 
@@ -23,10 +26,11 @@ var (
 type CameraRollData struct {
 	Thumbnails   *[]model.Thumbnail
 	OriginDomain string
+	LastKey      string
 }
 
-func generateCamerarollHtml() (events.LambdaFunctionURLResponse, error) {
-	thumbs, lk, err := model.New().ListThumbnails(MAX_THUMBNAIL_PER_PAGE, nil)
+func generateCamerarollHtml(scanKey dynamo.PagingKey) (events.LambdaFunctionURLResponse, error) {
+	thumbs, lk, err := model.New().ListThumbnails(MAX_THUMBNAIL_PER_PAGE, scanKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,7 +42,15 @@ func generateCamerarollHtml() (events.LambdaFunctionURLResponse, error) {
 	}
 
 	w := new(strings.Builder)
-	if err = cr.Execute(w, CameraRollData{thumbs, os.Getenv("ORIGIN_DOMAIN")}); err != nil {
+	if err = cr.Execute(w, CameraRollData{
+		thumbs,
+		os.Getenv("ORIGIN_DOMAIN"),
+		fmt.Sprintf(
+			"%s/%s",
+			base64.URLEncoding.EncodeToString([]byte(*lk["Id"].S)),
+			base64.URLEncoding.EncodeToString([]byte(*lk["Timestamp"].N)),
+		),
+	}); err != nil {
 		return responseHtml("", 500, Headers{}), err
 	}
 

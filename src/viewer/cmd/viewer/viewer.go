@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"log"
 	"maps"
 
@@ -9,6 +10,9 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/guregu/dynamo"
 )
 
 type Headers map[string]string
@@ -33,7 +37,17 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 	case "metadata":
 		return generateMetadataJson(key)
 	case "cameraroll":
-		return generateCamerarollHtml()
+		if key == "" {
+			return generateCamerarollHtml(nil)
+		}
+		parts := strings.SplitN(key, "/", 2)
+		id, _ := base64.URLEncoding.DecodeString(parts[0])
+		timestamp, _ := base64.URLEncoding.DecodeString(parts[1])
+
+		return generateCamerarollHtml(dynamo.PagingKey{
+			"Id":        &dynamodb.AttributeValue{S: aws.String(string(id))},
+			"Timestamp": &dynamodb.AttributeValue{N: aws.String(string(timestamp))},
+		})
 	default:
 		msg := "no route error"
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
