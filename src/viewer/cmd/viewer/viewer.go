@@ -42,11 +42,11 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 		}
 		parts := strings.SplitN(key, "/", 2)
 		id, _ := base64.URLEncoding.DecodeString(parts[0])
-		timestamp, _ := base64.URLEncoding.DecodeString(parts[1])
+		ts, _ := base64.URLEncoding.DecodeString(parts[1])
 
 		return generateCamerarollHtml(dynamo.PagingKey{
 			"Id":        &dynamodb.AttributeValue{S: aws.String(string(id))},
-			"Timestamp": &dynamodb.AttributeValue{N: aws.String(string(timestamp))},
+			"Timestamp": &dynamodb.AttributeValue{N: aws.String(string(ts))},
 		})
 	default:
 		msg := "no route error"

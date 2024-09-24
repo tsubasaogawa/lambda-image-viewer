@@ -54,6 +54,10 @@
         </li>
       {{ end }}
     </ul>
-    <p><a href="/cameraroll/{{ $lk }}">Next</a></p>
+    <p>
+      {{ if ne $lk "" }}
+        <a href="/cameraroll/{{ $lk }}">Next</a>
+      {{ end }}
+    </p>
   </body>
 </html>

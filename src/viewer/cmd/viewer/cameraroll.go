@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	MAX_THUMBNAIL_PER_PAGE = 20
+	MAX_THUMBNAIL_PER_PAGE = 100
 )
 
 var (
@@ -45,14 +45,22 @@ func generateCamerarollHtml(scanKey dynamo.PagingKey) (events.LambdaFunctionURLR
 	if err = cr.Execute(w, CameraRollData{
 		thumbs,
 		os.Getenv("ORIGIN_DOMAIN"),
-		fmt.Sprintf(
-			"%s/%s",
-			base64.URLEncoding.EncodeToString([]byte(*lk["Id"].S)),
-			base64.URLEncoding.EncodeToString([]byte(*lk["Timestamp"].N)),
-		),
+		generateLastEvaluatedKeyQueryString(lk),
 	}); err != nil {
 		return responseHtml("", 500, Headers{}), err
 	}
 
 	return responseHtml(w.String(), 200, Headers{"Cache-Control": "private"}), nil
+}
+
+func generateLastEvaluatedKeyQueryString(lk dynamo.PagingKey) string {
+	if len(lk) == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf(
+		"%s/%s",
+		base64.URLEncoding.EncodeToString([]byte(*lk["Id"].S)),
+		base64.URLEncoding.EncodeToString([]byte(*lk["Timestamp"].N)),
+	)
 }
