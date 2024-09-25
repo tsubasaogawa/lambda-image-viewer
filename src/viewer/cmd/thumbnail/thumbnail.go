@@ -1,10 +1,19 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"image"
 	"image/jpeg"
+	"log"
 	"os"
 
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"golang.org/x/image/draw"
 )
 
@@ -12,22 +21,59 @@ const (
 	DEFAULT_THUMBNAIL_SIZE = 133
 )
 
-func LoadImage(path string) (image.Image, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	img, err := jpeg.Decode(f)
-	if err != nil {
-		return nil, err
-	}
-
-	return img, nil
+func main() {
+	lambda.Start(Index)
 }
 
-func SquareTrimImage(img image.Image, size int) image.Image {
+func Index(ctx context.Context, event events.S3Event) {
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+	dl := s3manager.NewDownloader(sess)
+	up := s3manager.NewUploader(sess)
+
+	for _, r := range event.Records {
+		fo, err := os.CreateTemp("", "oldimg")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.Remove(fo.Name())
+
+		n, err := dl.Download(fo, &s3.GetObjectInput{
+			Bucket: aws.String(r.S3.Bucket.Name),
+			Key:    aws.String(r.S3.Object.Key),
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("%s (%d byte)\n", r.S3.Object.Key, n)
+
+		fn, err := os.CreateTemp("", "newimg")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.Remove(fn.Name())
+
+		if err := generateThumbnail(fn, 0); err != nil {
+			log.Fatal(err)
+		}
+		up.Upload(&s3manager.UploadInput{
+			Bucket: aws.String(r.S3.Bucket.Name),
+			Key:    aws.String(fmt.Sprintf("thumbnail/%s", r.S3.Object.Key)),
+			Body:   fn,
+		})
+	}
+}
+
+func generateThumbnail(f *os.File, size int) error {
+	if size <= 0 {
+		size = DEFAULT_THUMBNAIL_SIZE
+	}
+
+	img, err := LoadImage(f.Name())
+	if err != nil {
+		return err
+	}
 	width := img.Bounds().Max.X
 	height := img.Bounds().Max.Y
 
@@ -43,5 +89,20 @@ func SquareTrimImage(img image.Image, size int) image.Image {
 
 	draw.BiLinear.Scale(newImage, newImage.Bounds(), img, image.Rect(left, top, width-left, height-top), draw.Over, nil)
 
-	return newImage
+	return jpeg.Encode(f, newImage, &jpeg.Options{Quality: 70})
+}
+
+func LoadImage(path string) (image.Image, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	img, err := jpeg.Decode(f)
+	if err != nil {
+		return nil, err
+	}
+
+	return img, nil
 }
