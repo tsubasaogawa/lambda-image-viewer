@@ -1,10 +1,14 @@
 package main
 
+// TODO: S3 イベント設定、動作確認、処理失敗時のリトライ処理
+
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"image"
 	"image/jpeg"
+	_ "image/jpeg"
 	"log"
 	"os"
 
@@ -26,6 +30,16 @@ func main() {
 }
 
 func Index(ctx context.Context, event events.S3Event) {
+	/*
+			event = {
+			  "Records": [{
+			    "S3": {
+				  "Bucket": { "Name": <bucket_name> },
+				  "Object": { "Key": <key> }
+				}
+			  }]
+		    }
+	*/
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
@@ -48,32 +62,37 @@ func Index(ctx context.Context, event events.S3Event) {
 		}
 		log.Printf("%s (%d byte)\n", r.S3.Object.Key, n)
 
-		fn, err := os.CreateTemp("", "newimg")
+		i, err := generateThumbnail(fo, 0)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer os.Remove(fn.Name())
-
-		if err := generateThumbnail(fn, 0); err != nil {
+		b := new(bytes.Buffer)
+		if err = jpeg.Encode(b, i, &jpeg.Options{Quality: 70}); err != nil {
 			log.Fatal(err)
 		}
-		up.Upload(&s3manager.UploadInput{
-			Bucket: aws.String(r.S3.Bucket.Name),
-			Key:    aws.String(fmt.Sprintf("thumbnail/%s", r.S3.Object.Key)),
-			Body:   fn,
+
+		_, err = up.Upload(&s3manager.UploadInput{
+			Bucket:      aws.String(r.S3.Bucket.Name),
+			Key:         aws.String(fmt.Sprintf("thumbnail/%s", r.S3.Object.Key)),
+			Body:        b,
+			ContentType: aws.String("image/jpeg"),
 		})
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
-func generateThumbnail(f *os.File, size int) error {
+func generateThumbnail(f *os.File, size int) (*image.RGBA, error) {
 	if size <= 0 {
 		size = DEFAULT_THUMBNAIL_SIZE
 	}
 
-	img, err := LoadImage(f.Name())
+	img, err := jpeg.Decode(f)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
 	width := img.Bounds().Max.X
 	height := img.Bounds().Max.Y
 
@@ -88,21 +107,5 @@ func generateThumbnail(f *os.File, size int) error {
 	newImage := image.NewRGBA(image.Rect(0, 0, size, size))
 
 	draw.BiLinear.Scale(newImage, newImage.Bounds(), img, image.Rect(left, top, width-left, height-top), draw.Over, nil)
-
-	return jpeg.Encode(f, newImage, &jpeg.Options{Quality: 70})
-}
-
-func LoadImage(path string) (image.Image, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	img, err := jpeg.Decode(f)
-	if err != nil {
-		return nil, err
-	}
-
-	return img, nil
+	return newImage, nil
 }
