@@ -44,6 +44,8 @@ custom:
     cmd: GOARCH=amd64 GOOS=linux go build -tags lambda.norpc
     supportedRuntimes: ["provided.al2"]
     buildProvidedRuntimeAsBootstrap: true
+  origin:
+    eventTriggerPrefix: "blog/"
 
 functions:
   viewer:
@@ -65,6 +67,7 @@ functions:
           bucket: ${env:ORIGIN_DOMAIN}
           event: "s3:ObjectCreated:*"
           rules:
+            - prefix: ${self:custom.origin.eventTriggerPrefix}
             - suffix: .jpg
           existing: true
 
