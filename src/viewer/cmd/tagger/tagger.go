@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	slambda "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
 
@@ -24,9 +28,14 @@ func Index(ctx context.Context, event events.S3Event) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	svc := s3.New(sess)
 
+	if err := invokeThumbnailGenerator(sess, event); err != nil {
+		log.Println(err)
+	}
+
+	svc := s3.New(sess)
 	for _, r := range event.Records {
+		log.Printf("s3://%s/%s\n", r.S3.Bucket.Name, r.S3.Object.Key)
 		obj, err := svc.GetObject(&s3.GetObjectInput{
 			Bucket: aws.String(r.S3.Bucket.Name),
 			Key:    aws.String(r.S3.Object.Key),
@@ -57,7 +66,7 @@ func Index(ctx context.Context, event events.S3Event) {
 func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 	ts, err := getLocalUnixtime(e)
 	if err != nil {
-		return nil, err
+		log.Println("Timestamp will be set as Now because getLocalUnixtime() got an error: " + err.Error())
 	}
 	f, ok := getExifField(e, exif.FNumber).(float64)
 	if !ok {
@@ -81,7 +90,7 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 func getLocalUnixtime(e *exif.Exif) (int64, error) {
 	dt, err := e.DateTime()
 	if err != nil {
-		return 0, err
+		return time.Now().Unix(), err
 	}
 	return dt.Unix(), nil
 }
@@ -114,4 +123,23 @@ func getExifField(e *exif.Exif, n exif.FieldName) interface{} {
 	default:
 		return ""
 	}
+}
+
+func invokeThumbnailGenerator(sess *session.Session, event events.S3Event) error {
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	svc := slambda.New(sess)
+	input := &slambda.InvokeInput{
+		FunctionName: aws.String(os.Getenv("THUMBNAIL_FUNCTION_NAME")),
+		Payload:      payload,
+	}
+	r, err := svc.Invoke(input)
+	if err != nil {
+		return err
+	}
+	log.Println(r)
+
+	return nil
 }

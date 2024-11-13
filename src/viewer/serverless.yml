@@ -11,6 +11,11 @@ provider:
   iamRoleStatements:
     - Effect: "Allow"
       Action:
+        - "s3:GetObject*"
+        - "s3:PutObject*"
+      Resource: "arn:aws:s3:::${env:ORIGIN_DOMAIN}/*"
+    - Effect: "Allow"
+      Action:
         - "dynamodb:GetItem"
         - "dynamodb:BatchGetItem"
         - "dynamodb:Scan"
@@ -23,6 +28,10 @@ provider:
         - "dynamodb:DeleteItem"
         - "dynamodb:UpdateItem"
       Resource: "*"
+    - Effect: "Allow"
+      Action:
+        - "lambda:InvokeFunction"
+      Resource: "arn:aws:lambda:${env:REGION}:${aws:accountId}:function:${self:service}-*"
 
 package:
   individually: true
@@ -35,6 +44,8 @@ custom:
     cmd: GOARCH=amd64 GOOS=linux go build -tags lambda.norpc
     supportedRuntimes: ["provided.al2"]
     buildProvidedRuntimeAsBootstrap: true
+  origin:
+    eventTriggerPrefix: "blog/"
 
 functions:
   viewer:
@@ -51,12 +62,21 @@ functions:
     environment:
       REGION: ${env:REGION}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
+      THUMBNAIL_FUNCTION_NAME: "lambda-image-viewer-${sls:stage}-thumbnail"
     events:
       - s3:
           bucket: ${env:ORIGIN_DOMAIN}
           event: "s3:ObjectCreated:*"
           rules:
+            - prefix: ${self:custom.origin.eventTriggerPrefix}
             - suffix: .jpg
           existing: true
+
+  thumbnail:
+    handler: cmd/thumbnail/*.go
+    url: false
+    environment:
+      REGION: ${env:REGION}
+      TABLE: "${env:ORIGIN_DOMAIN}-item"
 
 useDotenv: true
