@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -89,7 +90,7 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 func getLocalUnixtime(e *exif.Exif) (int64, error) {
 	dt, err := e.DateTime()
 	if err != nil {
-		return 0, err
+		return time.Now().Unix(), err
 	}
 	return dt.Unix(), nil
 }
