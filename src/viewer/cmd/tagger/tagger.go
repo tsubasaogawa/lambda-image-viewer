@@ -27,8 +27,12 @@ func Index(ctx context.Context, event events.S3Event) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-	svc := s3.New(sess)
 
+	if err := invokeThumbnailGenerator(sess, event); err != nil {
+		log.Println(err)
+	}
+
+	svc := s3.New(sess)
 	for _, r := range event.Records {
 		log.Printf("s3://%s/%s\n", r.S3.Bucket.Name, r.S3.Object.Key)
 		obj, err := svc.GetObject(&s3.GetObjectInput{
@@ -56,15 +60,12 @@ func Index(ctx context.Context, event events.S3Event) {
 			log.Fatal(err)
 		}
 	}
-	if err := invokeThumbnailGenerator(sess, event); err != nil {
-		log.Fatal(err)
-	}
 }
 
 func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 	ts, err := getLocalUnixtime(e)
 	if err != nil {
-		return nil, err
+		log.Println("Timestamp will be set as Now because getLocalUnixtime() got an error: " + err.Error())
 	}
 	f, ok := getExifField(e, exif.FNumber).(float64)
 	if !ok {
