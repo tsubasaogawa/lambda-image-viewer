@@ -62,6 +62,7 @@ functions:
     environment:
       REGION: ${env:REGION}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
+      THUMBNAIL_FUNCTION_NAME: "lambda-image-viewer-${sls:stage}-thumbnail"
     events:
       - s3:
           bucket: ${env:ORIGIN_DOMAIN}
