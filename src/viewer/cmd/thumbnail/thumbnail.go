@@ -1,7 +1,5 @@
 package main
 
-// TODO: S3 イベント設定、動作確認、処理失敗時のリトライ処理
-
 import (
 	"bytes"
 	"context"

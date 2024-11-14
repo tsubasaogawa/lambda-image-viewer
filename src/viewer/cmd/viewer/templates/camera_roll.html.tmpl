@@ -47,8 +47,8 @@
       {{ range $i, $thumb := .Thumbnails }}
         <li>
           <ul>
-            <!-- TODO: create thumbnail image, dynamic width & height -->
-            <li><img src="https://{{ $origin }}/{{ $thumb.Id }}" width="100" height="100" /></li>
+            <!-- TODO: dynamic width & height -->
+            <li><a href="https://{{ $origin }}/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a></li>
             <li>&lt;img class="load-exif" src="https://{{ $origin }}/{{ $thumb.Id }}" width="1028" height="684" loading="lazy"&gt;</li>
           </ul>
         </li>
