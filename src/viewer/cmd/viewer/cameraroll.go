@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	MAX_THUMBNAIL_PER_PAGE = 100
+	MAX_THUMBNAIL_PER_PAGE = 200
 )
 
 var (
