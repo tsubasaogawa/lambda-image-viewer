@@ -11,46 +11,31 @@
         padding: 0;
         font-family: 'Open Sans', sans-serif;
       }
-
-      div#image {
-        height: 100vh;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center center;
+      li {
+        display: inline-block;
       }
-
-      ul#exif {
-        text-align: center;
-        list-style-type: none;
-        margin-top: 4rem;
+      .thumbnail {
+        position: relative;
       }
-
-      li#title {
-        font-size: 1.2rem;
-        font-weight: bold;
-      }
-
-      li#camera/lens {
-        font-size: 1.1rem;
-      }
-
-      li#camera/lens, li#focal_length, li#F, li#SS, li#ISO {
-        display: inline;
+      .thumbnail button {
+        position: absolute;
+        right: 0;
+        top: 0;
       }
     -->
     </style>
   </head>
   <body>
+    {{ $origin := .OriginDomain }}
+    {{ $lk := .LastKey }}
     <ul>
-      {{ $origin := .OriginDomain }}
-      {{ $lk := .LastKey }}
       {{ range $i, $thumb := .Thumbnails }}
         <li>
-          <ul>
+          <div class="thumbnail">
             <!-- TODO: dynamic width & height -->
-            <li><a href="https://{{ $origin }}/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a></li>
-            <li>&lt;img class="load-exif" src="https://{{ $origin }}/{{ $thumb.Id }}" width="1028" height="684" loading="lazy"&gt;</li>
-          </ul>
+            <a href="https://{{ $origin }}/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a>
+            <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", 1028, 684, {{ $i }})'>📋</button>
+          </div>
         </li>
       {{ end }}
     </ul>
@@ -59,5 +44,13 @@
         <a href="/cameraroll/{{ $lk }}">Next</a>
       {{ end }}
     </p>
+    <script>
+      function copy(key, w, h, id) {
+        const tag = `<img class="load-exif" src="https://{{ $origin }}/${key}" width="${w}" height="${h}" loading="lazy">`;
+        navigator.clipboard.writeText(tag);
+        let btn = document.getElementById("copybtn" + id);
+        btn.innerText = "✅";
+      }
+    </script>
   </body>
 </html>
