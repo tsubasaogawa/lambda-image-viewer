@@ -11,31 +11,16 @@
         padding: 0;
         font-family: 'Open Sans', sans-serif;
       }
-
-      div#image {
-        height: 100vh;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center center;
+      li {
+        display: inline-block;
       }
-
-      ul#exif {
-        text-align: center;
-        list-style-type: none;
-        margin-top: 4rem;
+      .thumbnail {
+        position: relative;
       }
-
-      li#title {
-        font-size: 1.2rem;
-        font-weight: bold;
-      }
-
-      li#camera/lens {
-        font-size: 1.1rem;
-      }
-
-      li#camera/lens, li#focal_length, li#F, li#SS, li#ISO {
-        display: inline;
+      .thumbnail button {
+        position: absolute;
+        right: 0;
+        top: 0;
       }
     -->
     </style>
@@ -46,9 +31,11 @@
     <ul>
       {{ range $i, $thumb := .Thumbnails }}
         <li>
-          <!-- TODO: dynamic width & height -->
-          <a href="https://{{ $origin }}/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a>
-          <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", 1028, 684, {{ $i }})'>📋</button>
+          <div class="thumbnail">
+            <!-- TODO: dynamic width & height -->
+            <a href="https://{{ $origin }}/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a>
+            <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", 1028, 684, {{ $i }})'>📋</button>
+          </div>
         </li>
       {{ end }}
     </ul>
