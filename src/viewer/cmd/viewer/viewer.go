@@ -27,6 +27,7 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 		msg := "path parsing error. path=" + r.RawPath
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
 	}
+
 	route := p[0]
 	key := p[1]
 	log.Printf("route=%s, key=%s\n", route, key)
@@ -37,6 +38,12 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 	case "metadata":
 		return generateMetadataJson(key)
 	case "cameraroll":
+		if !authorized(r.Headers) {
+			h := Headers{}
+			h["WWW-Authenticate"] = "Basic"
+			return responseHtml("Unauthorized", 401, h), fmt.Errorf("Unauthorized")
+		}
+
 		if key == "" {
 			return generateCamerarollHtml(nil)
 		}
