@@ -114,6 +114,10 @@ resource "aws_cloudfront_distribution" "viewer" {
     smooth_streaming           = false
     target_origin_id           = var.lambda_url
     viewer_protocol_policy     = "allow-all"
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.basic_auth.arn
+    }
   }
 
   origin {
@@ -147,6 +151,18 @@ resource "aws_cloudfront_distribution" "viewer" {
     minimum_protocol_version       = "TLSv1.2_2021"
     ssl_support_method             = "sni-only"
   }
+}
+
+resource "aws_cloudfront_function" "basic_auth" {
+  name    = "${replace(var.origin_domain, "/[^a-zA-Z0-9-_]/", "-")}-basic-auth"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code = templatefile(
+    "${path.module}/assets/basic_auth.js.tftpl",
+    {
+      authString = base64encode("${var.basic_id}:${var.basic_pw}")
+    }
+  )
 }
 
 resource "aws_dynamodb_table" "item" {

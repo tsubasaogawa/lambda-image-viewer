@@ -55,8 +55,6 @@ functions:
       REGION: ${env:REGION}
       ORIGIN_DOMAIN: ${env:ORIGIN_DOMAIN}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
-      BASIC_USER: ${env:BASIC_USER}
-      BASIC_PASSWORD: ${env:BASIC_PASSWORD}
 
   tagger:
     handler: cmd/tagger/*.go
