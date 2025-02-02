@@ -1,0 +1,21 @@
+function handler(event) {
+  const request = event.request;
+  const headers = request.headers;
+
+  const authString = "Basic ${authString}";
+
+  if (
+    typeof headers.authorization === "undefined" ||
+    headers.authorization.value !== authString
+  ) {
+    return {
+      statusCode: 401,
+      statusDescription: "Unauthorized",
+      headers: {
+        "www-authenticate": { value: "Basic" },
+      },
+    };
+  }
+
+  return request;
+}

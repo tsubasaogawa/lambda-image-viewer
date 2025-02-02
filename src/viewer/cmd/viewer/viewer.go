@@ -38,12 +38,6 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 	case "metadata":
 		return generateMetadataJson(key)
 	case "cameraroll":
-		if !authorized(r.Headers) {
-			h := Headers{}
-			h["WWW-Authenticate"] = "Basic"
-			return responseHtml("Unauthorized", 401, h), fmt.Errorf("Unauthorized")
-		}
-
 		if key == "" {
 			return generateCamerarollHtml(nil)
 		}
