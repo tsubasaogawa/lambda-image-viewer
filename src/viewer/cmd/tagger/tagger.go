@@ -72,6 +72,11 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 	if !ok {
 		f = 0.0
 	}
+	ss, err := calcShutterSpeed(getExifField(e, exif.ShutterSpeedValue).(float64))
+	if err != nil {
+		log.Println("Shutter speed will be set as 0 because calcShutterSpeed() got an error: " + err.Error())
+		ss = "0"
+	}
 
 	return &model.Metadata{
 		Id:          "",
@@ -83,7 +88,7 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 		F:           f,
 		FocalLength: int(getExifField(e, exif.FocalLength).(float64)),
 		ISO:         int(getExifField(e, exif.ISOSpeedRatings).(int64)),
-		SS:          calcShutterSpeed(getExifField(e, exif.ShutterSpeedValue).(float64)),
+		SS:          ss,
 	}, nil
 }
 
