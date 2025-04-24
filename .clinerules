@@ -1,0 +1,40 @@
+# Project Name
+
+lambda-image-viewer
+
+# Description
+
+Image viewer using AWS Lambda
+
+# Languages
+
+Go, JavaScript
+
+# Framework
+
+Serverless Framework
+
+# Infrastructure
+
+AWS (Lambda)
+
+# IaC
+
+Terraform
+
+# Coding Style
+
+- Based on the typical [Go Coding Style](https://google.github.io/styleguide/go/)
+- Indentation: Spaces (4)
+- Line Length: 120 characters
+
+# Linters and Formatters
+
+- Go: staticcheck, go fmt
+- Terraform: tflint, terraform fmt
+
+# Other
+
+- Error Handling: Errors should be properly logged and handled
+- Testing: Create unit and integration tests
+- Documentation: Write appropriate comments in the code
