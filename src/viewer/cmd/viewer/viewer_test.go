@@ -43,7 +43,7 @@ func (g *MockCamerarollGenerator) GenerateCamerarollHtml(pagingKey dynamo.Paging
 }
 
 func TestIndex(t *testing.T) {
-	// モックオブジェクトをグローバル変数に割り当てる
+	// Assign mock objects to global variables
 	originalImageGenerator = imageGenerator
 	originalMetadataGenerator = metadataGenerator
 	originalCamerarollGenerator = camerarollGenerator
