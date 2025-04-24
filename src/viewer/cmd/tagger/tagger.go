@@ -68,9 +68,31 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 	if err != nil {
 		log.Println("Timestamp will be set as Now because getLocalUnixtime() got an error: " + err.Error())
 	}
+	exposure, ok := getExifField(e, exif.ExposureBiasValue).(float64)
+	if !ok {
+		exposure = 0.0
+	}
 	f, ok := getExifField(e, exif.FNumber).(float64)
 	if !ok {
 		f = 0.0
+	}
+	_fl, ok := getExifField(e, exif.FocalLength).(float64)
+	if !ok {
+		_fl = 0.0
+	}
+	fl := int(_fl)
+
+	iso, ok := getExifField(e, exif.ISOSpeedRatings).(int)
+	if !ok {
+		iso = 0
+	}
+
+	ss := "0"
+	ssv, ok := getExifField(e, exif.ShutterSpeedValue).(float64)
+	if ok {
+		if ss, err = calcShutterSpeed(ssv); err != nil {
+			log.Println("Shutter speed will be set as 0 because calcShutterSpeed() got an error: " + err.Error())
+		}
 	}
 
 	return &model.Metadata{
@@ -79,11 +101,11 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 		Title:       getExifField(e, exif.ImageDescription).(string), // TODO: The field may be always empty when we use Lightroom
 		Camera:      getExifField(e, exif.Model).(string),
 		Lens:        getExifField(e, exif.LensModel).(string),
-		Exposure:    getExifField(e, exif.ExposureBiasValue).(float64),
+		Exposure:    exposure,
 		F:           f,
-		FocalLength: int(getExifField(e, exif.FocalLength).(float64)),
-		ISO:         int(getExifField(e, exif.ISOSpeedRatings).(int64)),
-		SS:          calcShutterSpeed(getExifField(e, exif.ShutterSpeedValue).(float64)),
+		FocalLength: fl,
+		ISO:         iso,
+		SS:          ss,
 	}, nil
 }
 
