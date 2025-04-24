@@ -27,14 +27,15 @@
   </head>
   <body>
     {{ $origin := .OriginDomain }}
+    {{ $width := .ImgWidthToClipboard }}
+    {{ $height := .ImgHeightToClipboard }}
     {{ $lk := .LastKey }}
     <ul>
       {{ range $i, $thumb := .Thumbnails }}
         <li>
           <div class="thumbnail">
-            <!-- TODO: dynamic width & height -->
             <a href="https://{{ $origin }}/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a>
-            <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", 1028, 684, {{ $i }})'>📋</button>
+            <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", {{ $width }}, {{ $height }}, {{ $i }})'>📋</button>
           </div>
         </li>
       {{ end }}

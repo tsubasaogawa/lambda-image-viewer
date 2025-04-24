@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -24,9 +25,11 @@ var (
 )
 
 type CameraRollData struct {
-	Thumbnails   *[]model.Thumbnail
-	OriginDomain string
-	LastKey      string
+	Thumbnails           *[]model.Thumbnail
+	OriginDomain         string
+	ImgWidthToClipboard  uint64
+	ImgHeightToClipboard uint64
+	LastKey              string
 }
 
 func generateCamerarollHtml(scanKey dynamo.PagingKey) (events.LambdaFunctionURLResponse, error) {
@@ -42,9 +45,13 @@ func generateCamerarollHtml(scanKey dynamo.PagingKey) (events.LambdaFunctionURLR
 	}
 
 	w := new(strings.Builder)
+	width, _ := strconv.ParseUint(os.Getenv("IMG_WIDTH_TO_CLIPBOARD"), 10, 64)
+	height, _ := strconv.ParseUint(os.Getenv("IMG_HEIGHT_TO_CLIPBOARD"), 10, 64)
 	if err = cr.Execute(w, CameraRollData{
 		thumbs,
 		os.Getenv("ORIGIN_DOMAIN"),
+		width,
+		height,
 		generateLastEvaluatedKeyQueryString(lk),
 	}); err != nil {
 		return responseHtml("", 500, Headers{}), err
