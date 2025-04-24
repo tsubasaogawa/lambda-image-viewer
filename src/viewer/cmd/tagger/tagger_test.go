@@ -11,8 +11,6 @@ func TestFillMetadataByExif(t *testing.T) {
 	e := &exif.Exif{}
 
 	metadata, err := FillMetadataByExif(e)
-	assert.ErrorContains(t, err, `exif: tag "DateTime" is not present`)
-
-	// returns nil if DateTime is none
-	assert.Nil(t, metadata)
+	assert.NoError(t, err)
+	assert.NotNil(t, metadata)
 }
