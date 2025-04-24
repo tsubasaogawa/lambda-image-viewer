@@ -9,6 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	originalImageGenerator      ImageGenerator
+	originalMetadataGenerator   MetadataGenerator
+	originalCamerarollGenerator CamerarollGenerator
+)
+
 type MockImageGenerator struct{}
 
 func (g *MockImageGenerator) GenerateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
@@ -38,9 +44,20 @@ func (g *MockCamerarollGenerator) GenerateCamerarollHtml(pagingKey dynamo.Paging
 
 func TestIndex(t *testing.T) {
 	// モックオブジェクトをグローバル変数に割り当てる
+	originalImageGenerator = imageGenerator
+	originalMetadataGenerator = metadataGenerator
+	originalCamerarollGenerator = camerarollGenerator
+
 	imageGenerator = &MockImageGenerator{}
 	metadataGenerator = &MockMetadataGenerator{}
 	camerarollGenerator = &MockCamerarollGenerator{}
+
+	defer func() {
+		imageGenerator = originalImageGenerator
+		metadataGenerator = originalMetadataGenerator
+		camerarollGenerator = originalCamerarollGenerator
+	}()
+
 	testCases := []struct {
 		name             string
 		rawPath          string
