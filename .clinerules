@@ -33,6 +33,14 @@ Terraform
 - Go: staticcheck, go fmt
 - Terraform: tflint, terraform fmt
 
+# Tests
+
+## viewer (Go)
+
+Test must be run at src/viewer directory. For example (cmd/viewer):
+
+- `./src/viewer && go test ./cmd/viewer/; cd -`
+
 # Other
 
 - Error Handling: Errors should be properly logged and handled

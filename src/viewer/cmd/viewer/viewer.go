@@ -2,10 +2,9 @@ package main
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"maps"
-
-	"fmt"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -16,6 +15,12 @@ import (
 )
 
 type Headers map[string]string
+
+var (
+	imageGenerator      ImageGenerator      = &DefaultImageGenerator{}
+	metadataGenerator   MetadataGenerator   = &DefaultMetadataGenerator{}
+	camerarollGenerator CamerarollGenerator = &DefaultCamerarollGenerator{}
+)
 
 func main() {
 	lambda.Start(Index)
@@ -34,18 +39,18 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 
 	switch route {
 	case "image":
-		return generateImageHtml(key)
+		return imageGenerator.GenerateImageHtml(key)
 	case "metadata":
-		return generateMetadataJson(key)
+		return metadataGenerator.GenerateMetadataJson(key)
 	case "cameraroll":
 		if key == "" {
-			return generateCamerarollHtml(nil)
+			return camerarollGenerator.GenerateCamerarollHtml(nil)
 		}
 		parts := strings.SplitN(key, "/", 2)
 		id, _ := base64.URLEncoding.DecodeString(parts[0])
 		ts, _ := base64.URLEncoding.DecodeString(parts[1])
 
-		return generateCamerarollHtml(dynamo.PagingKey{
+		return camerarollGenerator.GenerateCamerarollHtml(dynamo.PagingKey{
 			"Id":        &dynamodb.AttributeValue{S: aws.String(string(id))},
 			"Timestamp": &dynamodb.AttributeValue{N: aws.String(string(ts))},
 		})
