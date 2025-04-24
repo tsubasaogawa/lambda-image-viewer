@@ -68,28 +68,25 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 	if err != nil {
 		log.Println("Timestamp will be set as Now because getLocalUnixtime() got an error: " + err.Error())
 	}
-	exposure, ok := getExifField(e, exif.ExposureBiasValue).(float64)
-	if !ok {
-		exposure = 0.0
+	exposure := 0.0
+	if _exposure, ok := getExifField(e, exif.ExposureBiasValue).(float64); ok {
+		exposure = _exposure
 	}
-	f, ok := getExifField(e, exif.FNumber).(float64)
-	if !ok {
-		f = 0.0
+	f := 0.0
+	if _f, ok := getExifField(e, exif.FNumber).(float64); ok {
+		f = _f
 	}
-	_fl, ok := getExifField(e, exif.FocalLength).(float64)
-	if !ok {
-		_fl = 0.0
+	fl := 0
+	if _fl, ok := getExifField(e, exif.FocalLength).(float64); ok {
+		fl = int(_fl)
 	}
-	fl := int(_fl)
-
-	iso, ok := getExifField(e, exif.ISOSpeedRatings).(int)
-	if !ok {
-		iso = 0
+	iso := 0
+	if _iso, ok := getExifField(e, exif.ISOSpeedRatings).(int); ok {
+		iso = int(_iso)
 	}
 
 	ss := "0"
-	ssv, ok := getExifField(e, exif.ShutterSpeedValue).(float64)
-	if ok {
+	if ssv, ok := getExifField(e, exif.ShutterSpeedValue).(float64); ok {
 		if ss, err = calcShutterSpeed(ssv); err != nil {
 			log.Println("Shutter speed will be set as 0 because calcShutterSpeed() got an error: " + err.Error())
 		}
