@@ -55,6 +55,8 @@ functions:
       REGION: ${env:REGION}
       ORIGIN_DOMAIN: ${env:ORIGIN_DOMAIN}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
+      IMG_WIDTH_TO_CLIPBOARD: 1024
+      IMG_HEIGHT_TO_CLIPBOARD: 681
 
   tagger:
     handler: cmd/tagger/*.go
