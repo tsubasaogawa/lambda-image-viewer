@@ -36,15 +36,109 @@ resource "aws_s3_object" "metadata_fetcher" {
   content_type = "text/javascript"
 }
 
-resource "aws_acm_certificate" "viewer" {
-  domain_name       = var.viewer_domain
+resource "aws_acm_certificate" "origin" {
+  domain_name       = var.origin_domain
   validation_method = "DNS"
   provider          = aws.n_virginia
 }
 
-data "aws_route53_zone" "viewer" {
-  name         = var.viewer_domain
-  private_zone = false
+resource "aws_route53_zone" "origin" {
+  name = var.origin_domain
+}
+
+resource "aws_route53_record" "origin" {
+  for_each = {
+    for dvo in aws_acm_certificate.origin.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 300
+  type            = each.value.type
+  zone_id         = aws_route53_zone.origin.zone_id
+}
+
+resource "aws_acm_certificate_validation" "origin" {
+  certificate_arn         = aws_acm_certificate.origin.arn
+  validation_record_fqdns = [for record in aws_route53_record.origin : record.fqdn]
+  provider                = aws.n_virginia
+}
+
+resource "aws_cloudfront_distribution" "origin" {
+  aliases             = [var.origin_domain]
+  enabled             = true
+  is_ipv6_enabled     = true
+  http_version        = "http2"
+  price_class         = "PriceClass_All"
+  retain_on_delete    = false
+  wait_for_deployment = true
+
+  default_cache_behavior {
+    allowed_methods = [
+      "GET",
+      "HEAD",
+    ]
+    cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
+    cached_methods = [
+      "GET",
+      "HEAD",
+    ]
+    origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
+    response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63" # CORS-with-preflight-and-SecurityHeadersPolicy
+    smooth_streaming           = false
+    target_origin_id           = module.origin.s3_bucket_id
+    viewer_protocol_policy     = "allow-all"
+  }
+
+  origin {
+    domain_name = module.origin.s3_bucket_bucket_domain_name
+    origin_id   = module.origin.s3_bucket_id
+  }
+
+  restrictions {
+    geo_restriction {
+      locations        = []
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    acm_certificate_arn            = aws_acm_certificate.origin.arn
+    cloudfront_default_certificate = false
+    minimum_protocol_version       = "TLSv1.2_2021"
+    ssl_support_method             = "sni-only"
+  }
+}
+
+resource "aws_route53_record" "origin_cloudfront" {
+  zone_id = aws_route53_zone.origin.zone_id
+  name    = var.origin_domain
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.origin.domain_name
+    zone_id                = aws_cloudfront_distribution.origin.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+import {
+  to = aws_route53_zone.viewer
+  id = "Z03078769LP028AV32Z9"
+}
+resource "aws_route53_zone" "viewer" {
+  name = var.viewer_domain
+}
+
+resource "aws_acm_certificate" "viewer" {
+  domain_name       = var.viewer_domain
+  validation_method = "DNS"
+  provider          = aws.n_virginia
 }
 
 resource "aws_route53_record" "viewer" {
@@ -61,7 +155,7 @@ resource "aws_route53_record" "viewer" {
   records         = [each.value.record]
   ttl             = 300
   type            = each.value.type
-  zone_id         = data.aws_route53_zone.viewer.zone_id
+  zone_id         = aws_route53_zone.viewer.zone_id
 }
 
 resource "aws_acm_certificate_validation" "viewer" {
