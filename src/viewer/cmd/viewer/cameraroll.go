@@ -27,6 +27,7 @@ var (
 type CameraRollData struct {
 	Thumbnails           *[]model.Thumbnail
 	OriginDomain         string
+	ViewerDomain         string
 	ImgWidthToClipboard  uint64
 	ImgHeightToClipboard uint64
 	LastKey              string
@@ -50,6 +51,7 @@ func generateCamerarollHtml(scanKey dynamo.PagingKey) (events.LambdaFunctionURLR
 	if err = cr.Execute(w, CameraRollData{
 		thumbs,
 		os.Getenv("ORIGIN_DOMAIN"),
+		os.Getenv("VIEWER_DOMAIN"),
 		width,
 		height,
 		generateLastEvaluatedKeyQueryString(lk),

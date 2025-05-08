@@ -27,6 +27,7 @@
   </head>
   <body>
     {{ $origin := .OriginDomain }}
+    {{ $viewer := .ViewerDomain }}
     {{ $width := .ImgWidthToClipboard }}
     {{ $height := .ImgHeightToClipboard }}
     {{ $lk := .LastKey }}
@@ -34,7 +35,7 @@
       {{ range $i, $thumb := .Thumbnails }}
         <li>
           <div class="thumbnail">
-            <a href="https://{{ $origin }}/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a>
+            <a href="https://{{ $viewer }}/image/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a>
             <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", {{ $width }}, {{ $height }}, {{ $i }})'>📋</button>
           </div>
         </li>
