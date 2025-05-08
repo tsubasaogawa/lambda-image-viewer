@@ -127,10 +127,6 @@ resource "aws_route53_record" "origin_cloudfront" {
   }
 }
 
-import {
-  to = aws_route53_zone.viewer
-  id = "Z03078769LP028AV32Z9"
-}
 resource "aws_route53_zone" "viewer" {
   name = var.viewer_domain
 }
