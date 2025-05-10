@@ -11,6 +11,7 @@ provider:
   iamRoleStatements:
     - Effect: "Allow"
       Action:
+        - "s3:HeadObject*"
         - "s3:GetObject*"
         - "s3:PutObject*"
       Resource: "arn:aws:s3:::${env:ORIGIN_DOMAIN}/*"
@@ -81,5 +82,15 @@ functions:
     environment:
       REGION: ${env:REGION}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
+
+  cleanup:
+    handler: cmd/cleanup/*.go
+    url: false
+    memorySize: 128
+    timeout: 900
+    environment:
+      REGION: ${env:REGION}
+      TABLE: "${env:ORIGIN_DOMAIN}-item"
+      S3_BUCKET_NAME: ${env:ORIGIN_DOMAIN}
 
 useDotenv: true
