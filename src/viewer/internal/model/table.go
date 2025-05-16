@@ -20,8 +20,3 @@ func New() *Table {
 
 	return &Table{db.Table(os.Getenv("TABLE"))}
 }
-
-func (t *Table) DeleteItems(ids []string) error {
-	// TODO: implement
-	return nil
-}

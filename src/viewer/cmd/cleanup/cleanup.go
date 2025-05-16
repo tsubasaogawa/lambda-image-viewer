@@ -29,38 +29,47 @@ func Index(ctx context.Context, event events.S3Event) {
 	svc := s3.New(sess)
 	tbl := model.New()
 
-	// TODO: use not thumbnails but ids
-	thumbs, lk, err := tbl.ListThumbnails(MAX_SCAN_PER_PAGE, nil)
+	items, lk, err := tbl.ListItems(MAX_SCAN_PER_PAGE, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	cleanup(svc, thumbs)
+	cleanup(svc, tbl, items)
 
 	for len(lk) > 0 {
-		thumbs, lk, err = tbl.ListThumbnails(MAX_SCAN_PER_PAGE, lk)
+		items, lk, err = tbl.ListItems(MAX_SCAN_PER_PAGE, lk)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		cleanup(svc, thumbs)
+		cleanup(svc, tbl, items)
 	}
 }
 
-func cleanup(svc *s3.S3, thumbs *[]model.Thumbnail) {
+func cleanup(svc *s3.S3, tbl *model.Table, items *[]model.Item) {
 	bucket := os.Getenv("S3_BUCKET_NAME")
 
-	for _, t := range *thumbs {
-		found, err := exists(svc, t.Id, bucket)
+	// TODO: goroutine
+	for _, item := range *items {
+		found, err := exists(svc, item.Id, bucket)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err.Error())
 		}
-		if !found {
-			log.Printf("%s is not found\n", t.Id)
-			// tbl.DeleteThumbnail(t.Id)
+		if found || err != nil {
+			continue
 		}
+
+		d := tbl.Delete("Id", item.Id)
+		if err := d.Run(); err != nil {
+			log.Printf("Failed to delete item %s: %s\n", item.Id, err.Error())
+			continue
+		}
+
+		log.Printf("Deleted item %s\n", item.Id)
 	}
 }
+
 func exists(svc *s3.S3, id string, bucket string) (bool, error) {
+	// TODO: use ListObjectsV2 instead of HeadObject
 	_, err := svc.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(id),
