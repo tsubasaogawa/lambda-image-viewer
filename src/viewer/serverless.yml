@@ -92,5 +92,11 @@ functions:
       REGION: ${env:REGION}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
       S3_BUCKET_NAME: ${env:ORIGIN_DOMAIN}
+    events:
+      - schedule:
+          name: cleanup-schedule
+          description: Run cleanup function weekly
+          enabled: true
+          rate: "cron(0 0 ? * SUN *)"
 
 useDotenv: true
