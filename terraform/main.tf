@@ -15,17 +15,15 @@ module "origin" {
     error_document = "error.html"
   }
 
-  attach_policy = true
-  policy = jsonencode({
-    version = "2012-10-17"
-    statement = [{
-      sid       = "PublicReadGetObject"
-      effect    = "Allow"
-      principal = "*"
-      action    = "s3:GetObject"
-      resource  = "${module.origin.s3_bucket_arn}/*"
-    }]
-  })
+  attach_policy = false
+}
+
+resource "aws_cloudfront_origin_access_control" "origin" {
+  name                              = "${var.origin_domain}-oac"
+  description                       = "OAC for S3 origin bucket"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "no-override"
+  signing_protocol                  = "sigv4"
 }
 
 resource "aws_s3_object" "metadata_fetcher" {
@@ -95,9 +93,32 @@ resource "aws_cloudfront_distribution" "origin" {
     viewer_protocol_policy     = "allow-all"
   }
 
+  ordered_cache_behavior {
+    path_pattern = "*/private/*" # TODO: to envvar
+    allowed_methods = [
+      "GET",
+      "HEAD",
+    ]
+    cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
+    cached_methods = [
+      "GET",
+      "HEAD",
+    ]
+    origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
+    response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63" # CORS-with-preflight-and-SecurityHeadersPolicy
+    smooth_streaming           = false
+    target_origin_id           = module.origin.s3_bucket_id
+    viewer_protocol_policy     = "allow-all"
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.access_token_auth.arn
+    }
+  }
+
   origin {
-    domain_name = module.origin.s3_bucket_bucket_domain_name
-    origin_id   = module.origin.s3_bucket_id
+    domain_name              = module.origin.s3_bucket_bucket_domain_name
+    origin_id                = module.origin.s3_bucket_id
+    origin_access_control_id = aws_cloudfront_origin_access_control.origin.id
   }
 
   restrictions {
@@ -113,6 +134,29 @@ resource "aws_cloudfront_distribution" "origin" {
     minimum_protocol_version       = "TLSv1.2_2021"
     ssl_support_method             = "sni-only"
   }
+}
+
+resource "aws_s3_bucket_policy" "origin" {
+  bucket = module.origin.s3_bucket_id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid    = "AllowCloudFrontServicePrincipal"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        },
+        Action   = "s3:GetObject"
+        Resource = "${module.origin.s3_bucket_arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.origin.arn
+          }
+        }
+      }
+    ]
+  })
 }
 
 resource "aws_route53_record" "origin_cloudfront" {
@@ -188,7 +232,7 @@ resource "aws_cloudfront_distribution" "viewer" {
   }
 
   ordered_cache_behavior {
-    path_pattern = "/cameraroll/*"
+    path_pattern = "/cameraroll/*" # TODO: to envvar
     allowed_methods = [
       "GET",
       "HEAD",
@@ -253,6 +297,33 @@ resource "aws_cloudfront_function" "basic_auth" {
       authString = base64encode("${var.basic_id}:${var.basic_pw}")
     }
   )
+}
+
+resource "aws_cloudfront_function" "access_token_auth" {
+  name    = "${replace(var.origin_domain, "/[^a-zA-Z0-9-_]/", "-")}-token-auth"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  # TODO: use templatefile
+  code = <<EOT
+function handler(event) {
+  var request = event.request;
+  var params = request.querystring;
+
+  // Replace with your actual token validation logic
+  var validToken = "hoge";
+
+  if (params.token && params.token.value === validToken) {
+    // Remove the token from the querystring before forwarding to the origin
+    delete params.token;
+    return request;
+  } else {
+    return {
+      statusCode: 403,
+      statusDescription: 'Forbidden'
+    };
+  }
+}
+EOT
 }
 
 resource "aws_dynamodb_table" "item" {
