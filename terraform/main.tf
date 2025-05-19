@@ -104,7 +104,7 @@ resource "aws_cloudfront_distribution" "origin" {
       "GET",
       "HEAD",
     ]
-    origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
+    origin_request_policy_id   = aws_cloudfront_origin_request_policy.allow_querystring.id
     response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63" # CORS-with-preflight-and-SecurityHeadersPolicy
     smooth_streaming           = false
     target_origin_id           = module.origin.s3_bucket_id
@@ -324,6 +324,22 @@ function handler(event) {
   }
 }
 EOT
+}
+
+resource "aws_cloudfront_origin_request_policy" "allow_querystring" {
+  name = "${replace(var.origin_domain, "/[^a-zA-Z0-9-_]/", "-")}-allow-querystring-policy"
+
+  query_strings_config {
+    query_string_behavior = "all"
+  }
+
+  cookies_config {
+    cookie_behavior = "none"
+  }
+
+  headers_config {
+    header_behavior = "none"
+  }
 }
 
 resource "aws_dynamodb_table" "item" {

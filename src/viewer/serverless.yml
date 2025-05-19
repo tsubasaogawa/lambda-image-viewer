@@ -46,7 +46,7 @@ custom:
     supportedRuntimes: ["provided.al2"]
     buildProvidedRuntimeAsBootstrap: true
   origin:
-    eventTriggerPrefix: "blog/"
+    eventTriggerPrefix: "blog/" # TODO: to envvar
 
 functions:
   viewer:
