@@ -305,12 +305,20 @@ resource "aws_cloudfront_function" "access_token_auth" {
   publish = true
   # TODO: use templatefile
   code = <<EOT
+var crypto = require('crypto');
 function handler(event) {
   var request = event.request;
   var params = request.querystring;
+  var salt = `${aws_secretsmanager_secret_version.salt_for_private_image.secret_string}`; // TODO: use KVS
 
   // Replace with your actual token validation logic
-  var validToken = "hoge";
+  if (!request.uri) {
+    return {
+      statusCode: 403,
+      statusDescription: 'Forbidden'
+    };
+  }
+  var validToken = crypto.createHash('sha256').update(`$${request.uri}$${salt}`).digest('hex');
 
   if (params.token && params.token.value === validToken) {
     // Remove the token from the querystring before forwarding to the origin
@@ -362,4 +370,21 @@ resource "aws_dynamodb_table" "item" {
     name            = "Timestamp"
     projection_type = "KEYS_ONLY"
   }
+}
+
+data "aws_secretsmanager_random_password" "salt_for_private_image" {
+  password_length     = 32
+  exclude_numbers     = false
+  exclude_punctuation = true
+  include_space       = false
+}
+
+resource "aws_secretsmanager_secret" "salt_for_private_image" {
+  name        = "${var.origin_domain}-salt-for-private-image"
+  description = "Token for private image access"
+}
+
+resource "aws_secretsmanager_secret_version" "salt_for_private_image" {
+  secret_id     = aws_secretsmanager_secret.salt_for_private_image.id
+  secret_string = data.aws_secretsmanager_random_password.salt_for_private_image.random_password
 }
