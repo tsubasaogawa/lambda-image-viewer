@@ -31,14 +31,17 @@
     {{ $width := .ImgWidthToClipboard }}
     {{ $height := .ImgHeightToClipboard }}
     {{ $lk := .LastKey }}
+    {{ $isPrivate := .IsPrivate }}
     <ul>
       {{ range $i, $thumb := .Thumbnails }}
-        <li>
-          <div class="thumbnail">
-            <a href="https://{{ $viewer }}/image/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a>
-            <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", {{ $width }}, {{ $height }}, {{ $i }})'>📋</button>
-          </div>
-        </li>
+        {{ if or (and $isPrivate $thumb.Private) (and (not $isPrivate) (not $thumb.Private)) }}
+          <li>
+            <div class="thumbnail">
+              <a href="https://{{ $viewer }}/image/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a>
+              <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", {{ $width }}, {{ $height }}, {{ $i }})'>📋</button>
+            </div>
+          </li>
+        {{ end }}
       {{ end }}
     </ul>
     <p>

@@ -2,6 +2,7 @@ package model
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/guregu/dynamo"
 )
@@ -9,6 +10,7 @@ import (
 type Thumbnail struct {
 	Id        string `json:"id"`
 	Timestamp int64  `json:"timestamp"`
+	Private   bool   `json:"private"`
 }
 
 func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]Thumbnail, dynamo.PagingKey, error) {
@@ -22,6 +24,10 @@ func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]Thumbnai
 	lastKey, err := scan.AllWithLastEvaluatedKey(&thumbs)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	for i := range thumbs {
+		thumbs[i].Private = strings.Contains(thumbs[i].Id, "/private/")
 	}
 
 	sort.Slice(thumbs, func(i, j int) bool { return thumbs[i].Timestamp < thumbs[j].Timestamp })

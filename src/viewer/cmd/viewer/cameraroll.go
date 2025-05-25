@@ -41,16 +41,6 @@ func generateCamerarollHtml(scanKey dynamo.PagingKey, isPrivate bool) (events.La
 	}
 	log.Printf("lastEvaluatedKey = %+v\n", lk)
 
-	if isPrivate {
-		filteredThumbs := []model.Thumbnail{}
-		for _, thumb := range *thumbs {
-			if strings.Contains(thumb.Id, "/private/") {
-				filteredThumbs = append(filteredThumbs, thumb)
-			}
-		}
-		thumbs = &filteredThumbs
-	}
-
 	cr, err := template.New("cameraroll").Parse(crTmpl)
 	if err != nil {
 		log.Fatal(err)
