@@ -32,6 +32,7 @@ type CameraRollData struct {
 	ImgHeightToClipboard uint64
 	LastKey              string
 	IsPrivate            bool
+	SaltForPrivateImage  string
 }
 
 func generateCamerarollHtml(scanKey dynamo.PagingKey, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
@@ -57,6 +58,7 @@ func generateCamerarollHtml(scanKey dynamo.PagingKey, isPrivate bool) (events.La
 		ImgHeightToClipboard: height,
 		LastKey:              generateLastEvaluatedKeyQueryString(lk),
 		IsPrivate:            isPrivate,
+		SaltForPrivateImage:  os.Getenv("SALT_FOR_PRIVATE_IMAGE"),
 	}); err != nil {
 		return responseHtml("", 500, Headers{}), err
 	}
