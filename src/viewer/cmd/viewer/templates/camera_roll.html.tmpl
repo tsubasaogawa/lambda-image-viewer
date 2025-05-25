@@ -46,12 +46,35 @@
         <a href="/cameraroll/{{ $lk }}">Next</a>
       {{ end }}
     </p>
+    <p id="private_mode">
+      <input type="checkbox" id="privateModeCheckbox"> Switch to private mode
+    </p>
+    <p id="copyinfo">
+      Copy the HTML tag to clipboard by clicking the 📋 button.
+    </p>
     <script>
       function copy(key, w, h, id) {
         const tag = `<img class="load-exif" src="https://{{ $origin }}/${key}" width="${w}" height="${h}" loading="lazy">`;
         navigator.clipboard.writeText(tag);
         let btn = document.getElementById("copybtn" + id);
         btn.innerText = "✅";
+      }
+
+      const privateModeCheckbox = document.getElementById('privateModeCheckbox');
+      privateModeCheckbox.addEventListener('change', function() {
+        const currentUrl = new URL(window.location.href);
+        // Remove all existing query parameters
+        currentUrl.search = '';
+        if (this.checked) {
+          currentUrl.searchParams.set('private', 'true');
+        }
+        window.location.href = currentUrl.toString();
+      });
+
+      // Check the checkbox if 'private=true' is already in the URL
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('private') && urlParams.get('private') === 'true') {
+        privateModeCheckbox.checked = true;
       }
     </script>
   </body>
