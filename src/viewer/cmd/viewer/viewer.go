@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"net/url"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -43,8 +44,14 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 	case "metadata":
 		return metadataGenerator.GenerateMetadataJson(key)
 	case "cameraroll":
+		q, err := url.ParseQuery(r.RawQueryString)
+		if err != nil {
+			msg := "query parsing error. query=" + r.RawQueryString
+			return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
+		}
+		isPrivate := q.Get("private") == "true"
 		if key == "" {
-			return camerarollGenerator.GenerateCamerarollHtml(nil)
+			return camerarollGenerator.GenerateCamerarollHtml(nil, isPrivate)
 		}
 		parts := strings.SplitN(key, "/", 2)
 		id, _ := base64.URLEncoding.DecodeString(parts[0])
@@ -53,7 +60,7 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 		return camerarollGenerator.GenerateCamerarollHtml(dynamo.PagingKey{
 			"Id":        &dynamodb.AttributeValue{S: aws.String(string(id))},
 			"Timestamp": &dynamodb.AttributeValue{N: aws.String(string(ts))},
-		})
+		}, isPrivate)
 	default:
 		msg := "no route error"
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)

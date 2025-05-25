@@ -31,14 +31,25 @@ type CameraRollData struct {
 	ImgWidthToClipboard  uint64
 	ImgHeightToClipboard uint64
 	LastKey              string
+	IsPrivate            bool
 }
 
-func generateCamerarollHtml(scanKey dynamo.PagingKey) (events.LambdaFunctionURLResponse, error) {
+func generateCamerarollHtml(scanKey dynamo.PagingKey, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
 	thumbs, lk, err := model.New().ListThumbnails(MAX_THUMBNAIL_PER_PAGE, scanKey)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("lastEvaluatedKey = %+v\n", lk)
+
+	if isPrivate {
+		filteredThumbs := []model.Thumbnail{}
+		for _, thumb := range *thumbs {
+			if strings.Contains(thumb.Id, "/private/") {
+				filteredThumbs = append(filteredThumbs, thumb)
+			}
+		}
+		thumbs = &filteredThumbs
+	}
 
 	cr, err := template.New("cameraroll").Parse(crTmpl)
 	if err != nil {
@@ -49,12 +60,13 @@ func generateCamerarollHtml(scanKey dynamo.PagingKey) (events.LambdaFunctionURLR
 	width, _ := strconv.ParseUint(os.Getenv("IMG_WIDTH_TO_CLIPBOARD"), 10, 64)
 	height, _ := strconv.ParseUint(os.Getenv("IMG_HEIGHT_TO_CLIPBOARD"), 10, 64)
 	if err = cr.Execute(w, CameraRollData{
-		thumbs,
-		os.Getenv("ORIGIN_DOMAIN"),
-		os.Getenv("VIEWER_DOMAIN"),
-		width,
-		height,
-		generateLastEvaluatedKeyQueryString(lk),
+		Thumbnails:           thumbs,
+		OriginDomain:         os.Getenv("ORIGIN_DOMAIN"),
+		ViewerDomain:         os.Getenv("VIEWER_DOMAIN"),
+		ImgWidthToClipboard:  width,
+		ImgHeightToClipboard: height,
+		LastKey:              generateLastEvaluatedKeyQueryString(lk),
+		IsPrivate:            isPrivate,
 	}); err != nil {
 		return responseHtml("", 500, Headers{}), err
 	}
