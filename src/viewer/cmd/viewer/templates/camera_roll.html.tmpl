@@ -57,6 +57,7 @@
     <p id="copyinfo">
       Copy the HTML tag to clipboard by clicking the 📋 button.
     </p>
+    <script src="https://{{ $origin }}/assets/generate_access_token.js"></script>
     <script>
       const salt = "{{ .SaltForPrivateImage }}";
 
@@ -76,7 +77,7 @@
             for (const img of images) {
               const url = new URL(img.dataset.src);
               const key = url.pathname; // Keep leading slash
-              const token = await generateToken(key);
+              const token = await generateToken(key, salt);
               const imageUrl = new URL(img.dataset.src);
               imageUrl.searchParams.set('token', token);
               img.src = imageUrl.toString();
@@ -105,19 +106,6 @@
         }
         window.location.href = currentUrl.toString();
       });
-    
-      async function generateSHA256Hash(text) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(text);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
-        return hashHex;
-      }
-
-      async function generateToken(key) {
-        return await generateSHA256Hash(key + salt);
-      }
     </script>
   </body>
 </html>
