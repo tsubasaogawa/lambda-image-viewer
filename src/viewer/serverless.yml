@@ -39,12 +39,16 @@ package:
 
 plugins:
   - serverless-go-plugin
+  - serverless-prune-plugin
 
 custom:
   go:
     cmd: GOARCH=amd64 GOOS=linux go build -tags lambda.norpc
     supportedRuntimes: ["provided.al2"]
     buildProvidedRuntimeAsBootstrap: true
+  prune:
+    automatic: true
+    number: 3
   origin:
     eventTriggerPrefix: "blog/" # TODO: to envvar
 
