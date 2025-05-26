@@ -39,12 +39,16 @@ package:
 
 plugins:
   - serverless-go-plugin
+  - serverless-prune-plugin
 
 custom:
   go:
     cmd: GOARCH=amd64 GOOS=linux go build -tags lambda.norpc
     supportedRuntimes: ["provided.al2"]
     buildProvidedRuntimeAsBootstrap: true
+  prune:
+    automatic: true
+    number: 3
   origin:
     eventTriggerPrefix: "blog/" # TODO: to envvar
 
@@ -59,6 +63,7 @@ functions:
       TABLE: "${env:ORIGIN_DOMAIN}-item"
       IMG_WIDTH_TO_CLIPBOARD: 1024
       IMG_HEIGHT_TO_CLIPBOARD: 681
+      SALT_FOR_PRIVATE_IMAGE: ${ssm:/aws/reference/secretsmanager/${env:ORIGIN_DOMAIN}-salt-for-private-image}
 
   tagger:
     handler: cmd/tagger/*.go

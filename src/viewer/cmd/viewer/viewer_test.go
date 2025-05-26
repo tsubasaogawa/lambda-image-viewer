@@ -35,7 +35,7 @@ func (g *MockMetadataGenerator) GenerateMetadataJson(key string) (events.LambdaF
 
 type MockCamerarollGenerator struct{}
 
-func (g *MockCamerarollGenerator) GenerateCamerarollHtml(pagingKey dynamo.PagingKey) (events.LambdaFunctionURLResponse, error) {
+func (g *MockCamerarollGenerator) GenerateCamerarollHtml(pagingKey dynamo.PagingKey, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
 	return events.LambdaFunctionURLResponse{
 		StatusCode: 200,
 		Body:       "mocked cameraroll",

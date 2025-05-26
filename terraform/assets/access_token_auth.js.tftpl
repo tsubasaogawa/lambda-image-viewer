@@ -1,0 +1,27 @@
+var crypto = require('crypto');
+
+function handler(event) {
+  var request = event.request;
+  var params = request.querystring;
+  var salt = `${salt}`; // TODO: use KVS
+
+  // Replace with your actual token validation logic
+  if (!request.uri) {
+    return {
+      statusCode: 403,
+      statusDescription: 'Forbidden'
+    };
+  }
+  var validToken = crypto.createHash('sha256').update(`$${request.uri}$${salt}`).digest('hex');
+
+  if (params.token && params.token.value === validToken) {
+    // Remove the token from the querystring before forwarding to the origin
+    delete params.token;
+    return request;
+  } else {
+    return {
+      statusCode: 403,
+      statusDescription: 'Forbidden'
+    };
+  }
+}

@@ -14,7 +14,7 @@ type MetadataGenerator interface {
 }
 
 type CamerarollGenerator interface {
-	GenerateCamerarollHtml(pagingKey dynamo.PagingKey) (events.LambdaFunctionURLResponse, error)
+	GenerateCamerarollHtml(pagingKey dynamo.PagingKey, isPrivate bool) (events.LambdaFunctionURLResponse, error)
 }
 
 type DefaultImageGenerator struct{}
@@ -31,6 +31,6 @@ func (g *DefaultMetadataGenerator) GenerateMetadataJson(key string) (events.Lamb
 
 type DefaultCamerarollGenerator struct{}
 
-func (g *DefaultCamerarollGenerator) GenerateCamerarollHtml(pagingKey dynamo.PagingKey) (events.LambdaFunctionURLResponse, error) {
-	return generateCamerarollHtml(pagingKey)
+func (g *DefaultCamerarollGenerator) GenerateCamerarollHtml(pagingKey dynamo.PagingKey, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
+	return generateCamerarollHtml(pagingKey, isPrivate)
 }

@@ -1,8 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
 	_ "embed"
-
+	"encoding/hex"
 	"fmt"
 	"html/template"
 	"log"
@@ -36,8 +37,13 @@ func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
 		meta = &model.Metadata{}
 	}
 
+	query := ""
+	if strings.Contains(key, "/private/") {
+		query = fmt.Sprintf("?token=%s", generateToken("/"+key))
+	}
+
 	image := Image{
-		Url:      fmt.Sprintf("https://%s/%s", os.Getenv("ORIGIN_DOMAIN"), key),
+		Url:      fmt.Sprintf("https://%s/%s%s", os.Getenv("ORIGIN_DOMAIN"), key, query),
 		Metadata: *meta,
 	}
 
@@ -49,4 +55,10 @@ func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
 	}
 
 	return responseHtml(w.String(), 200, Headers{"Cache-Control": "public, max-age=31536000"}), nil
+}
+
+func generateToken(key string) string {
+	salt := os.Getenv("SALT_FOR_PRIVATE_IMAGE")
+	hash := sha256.Sum256([]byte(key + salt))
+	return hex.EncodeToString(hash[:])
 }

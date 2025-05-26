@@ -34,6 +34,14 @@ resource "aws_s3_object" "metadata_fetcher" {
   content_type = "text/javascript"
 }
 
+resource "aws_s3_object" "generate_access_token" {
+  bucket       = module.origin.s3_bucket_id
+  key          = "assets/generate_access_token.js"
+  content      = file("assets/generate_access_token.js")
+  source_hash  = filemd5("assets/generate_access_token.js")
+  content_type = "text/javascript"
+}
+
 resource "aws_acm_certificate" "origin" {
   domain_name       = var.origin_domain
   validation_method = "DNS"
@@ -303,27 +311,12 @@ resource "aws_cloudfront_function" "access_token_auth" {
   name    = "${replace(var.origin_domain, "/[^a-zA-Z0-9-_]/", "-")}-token-auth"
   runtime = "cloudfront-js-2.0"
   publish = true
-  # TODO: use templatefile
-  code = <<EOT
-function handler(event) {
-  var request = event.request;
-  var params = request.querystring;
-
-  // Replace with your actual token validation logic
-  var validToken = "hoge";
-
-  if (params.token && params.token.value === validToken) {
-    // Remove the token from the querystring before forwarding to the origin
-    delete params.token;
-    return request;
-  } else {
-    return {
-      statusCode: 403,
-      statusDescription: 'Forbidden'
-    };
-  }
-}
-EOT
+  code = templatefile(
+    "${path.module}/assets/access_token_auth.js.tftpl",
+    {
+      salt = aws_secretsmanager_secret_version.salt_for_private_image.secret_string
+    }
+  )
 }
 
 resource "aws_cloudfront_origin_request_policy" "allow_querystring" {
@@ -362,4 +355,21 @@ resource "aws_dynamodb_table" "item" {
     name            = "Timestamp"
     projection_type = "KEYS_ONLY"
   }
+}
+
+data "aws_secretsmanager_random_password" "salt_for_private_image" {
+  password_length     = 32
+  exclude_numbers     = false
+  exclude_punctuation = true
+  include_space       = false
+}
+
+resource "aws_secretsmanager_secret" "salt_for_private_image" {
+  name        = "${var.origin_domain}-salt-for-private-image"
+  description = "Token for private image access"
+}
+
+resource "aws_secretsmanager_secret_version" "salt_for_private_image" {
+  secret_id     = aws_secretsmanager_secret.salt_for_private_image.id
+  secret_string = data.aws_secretsmanager_random_password.salt_for_private_image.random_password
 }

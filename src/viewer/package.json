@@ -1,5 +1,6 @@
 {
   "devDependencies": {
-    "serverless-go-plugin": "^2.2.0"
+    "serverless-go-plugin": "^2.2.0",
+    "serverless-prune-plugin": "^2.1.0"
   }
 }

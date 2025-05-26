@@ -14,10 +14,10 @@
       li {
         display: inline-block;
       }
-      .thumbnail {
+      .thumbnailBox {
         position: relative;
       }
-      .thumbnail button {
+      .thumbnailBox button {
         position: absolute;
         right: 0;
         top: 0;
@@ -31,14 +31,19 @@
     {{ $width := .ImgWidthToClipboard }}
     {{ $height := .ImgHeightToClipboard }}
     {{ $lk := .LastKey }}
+    {{ $isPrivate := .IsPrivate }}
     <ul>
       {{ range $i, $thumb := .Thumbnails }}
-        <li>
-          <div class="thumbnail">
-            <a href="https://{{ $viewer }}/image/{{ $thumb.Id }}"><img src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" /></a>
-            <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", {{ $width }}, {{ $height }}, {{ $i }})'>📋</button>
-          </div>
-        </li>
+        {{ if or (and $isPrivate $thumb.Private) (and (not $isPrivate) (not $thumb.Private)) }}
+          <li>
+            <div class="thumbnailBox">
+              <a href="https://{{ $viewer }}/image/{{ $thumb.Id }}"><img data-src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" class="thumbnailImage" data-private="{{ $thumb.Private }}" /></a>
+              {{ if not $thumb.Private }}
+                <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", {{ $width }}, {{ $height }}, {{ $i }})'>📋</button>
+              {{ end }}
+            </div>
+          </li>
+        {{ end }}
       {{ end }}
     </ul>
     <p>
@@ -46,13 +51,61 @@
         <a href="/cameraroll/{{ $lk }}">Next</a>
       {{ end }}
     </p>
+    <p id="private_mode">
+      <input type="checkbox" id="privateModeCheckbox"> Switch to private mode
+    </p>
+    <p id="copyinfo">
+      Copy the HTML tag to clipboard by clicking the 📋 button.
+    </p>
+    <script src="https://{{ $origin }}/assets/generate_access_token.js"></script>
     <script>
+      const salt = "{{ .SaltForPrivateImage }}";
+
+      // Check the checkbox if 'private=true' is already in the URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const isPrivate = urlParams.has('private') && urlParams.get('private') === 'true';
+
+      // Load images
+      (async function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+          const images = document.querySelectorAll('img.thumbnailImage');
+          if (!isPrivate) {
+            images.forEach(img => {
+              img.src = img.dataset.src;
+            });
+          } else {
+            for (const img of images) {
+              const url = new URL(img.dataset.src);
+              const key = url.pathname; // Keep leading slash
+              const token = await generateToken(key, salt);
+              const imageUrl = new URL(img.dataset.src);
+              imageUrl.searchParams.set('token', token);
+              img.src = imageUrl.toString();
+            }
+          }
+        });
+      })();
+
       function copy(key, w, h, id) {
         const tag = `<img class="load-exif" src="https://{{ $origin }}/${key}" width="${w}" height="${h}" loading="lazy">`;
         navigator.clipboard.writeText(tag);
         let btn = document.getElementById("copybtn" + id);
         btn.innerText = "✅";
       }
+
+      const privateModeCheckbox = document.getElementById('privateModeCheckbox');
+      if (isPrivate) {
+        privateModeCheckbox.checked = true;
+      }
+      privateModeCheckbox.addEventListener('change', function() {
+        const currentUrl = new URL(window.location.href);
+        // Remove all existing query parameters
+        currentUrl.search = '';
+        if (this.checked) {
+          currentUrl.searchParams.set('private', 'true');
+        }
+        window.location.href = currentUrl.toString();
+      });
     </script>
   </body>
 </html>
