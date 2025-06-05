@@ -6,7 +6,8 @@ A simple image viewer using AWS Lambda + CloudFront + DynamoDB + S3.
 
 ### CDN
 
-- Provides a typical S3-backed CDN via CloudFront.
+- Provides a standard S3-backed CDN via CloudFront.
+- Private mode: Images in the `private` folder are accessible only with the appropriate token query.
 
 ### Image Viewer
 
@@ -19,6 +20,7 @@ A simple image viewer using AWS Lambda + CloudFront + DynamoDB + S3.
 ![Screenshot](https://github.com/user-attachments/assets/fd366891-0974-4507-9f06-fcfd8045bb08)
 
 - You can list all uploaded images.
+- Basic auth.
 
 ## Structure
 
@@ -32,7 +34,7 @@ A simple image viewer using AWS Lambda + CloudFront + DynamoDB + S3.
 ## Requirements
 
 - Serverless Framework v3.34
-- Terraform v1.5.0
+- Terraform v1.12 or above
 - Go 1.21
 - AWS
 
