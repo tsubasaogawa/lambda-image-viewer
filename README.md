@@ -50,34 +50,37 @@ You can also use **env to install easily.
 git clone https://github.com/tsubasaogawa/lambda-image-viewer.git
 ```
 
-### Fix environments
-
-```bash
-cd lambda-image-viewer
-
-cp -p src/viewer/.env.tmpl src/viewer/.env
-vim src/viewer/.env
-
-cp -p terraform/terraform.tfvars.tmpl terraform/terraform.tfvars
-vim terraform/terraform.tfvars
-```
-
 ### Deploy Lambda
 
 ```bash
 cd src/viewer
 
+# Fix environments. Please follow comments in .env file.
+cp -p .env.tmpl .env
+vim .env
+
+# Building go binary, deploying lambda
 serverless deploy
-# Building go binary, deploying lambda using serverless
+
+# Show the deploy information.
+serverless info
 ```
 
-### Deploy instastructure
+### Deploy Infrastructure
 
 ```bash
 cd ../../terraform
 
+# Fix environments.
+cp -p terraform.tfvars.tmpl terraform.tfvars
+vim terraform.tfvars
+
 terraform init
 terraform apply
+
+# Deploy Lambda again to set some environment variables using Secrets Manager created by Terraform.
+cd ../src/viewer
+serverless deploy
 ```
 
 ### Upload photo

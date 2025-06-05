@@ -63,7 +63,7 @@ functions:
       TABLE: "${env:ORIGIN_DOMAIN}-item"
       IMG_WIDTH_TO_CLIPBOARD: 1024
       IMG_HEIGHT_TO_CLIPBOARD: 681
-      SALT_FOR_PRIVATE_IMAGE: ${ssm:/aws/reference/secretsmanager/${env:ORIGIN_DOMAIN}-salt-for-private-image}
+      SALT_FOR_PRIVATE_IMAGE: ${ssm:/aws/reference/secretsmanager/${env:ORIGIN_DOMAIN}-salt-for-private-image, "DEPLOY_AGAIN_AFTER_APPLY"}
 
   tagger:
     handler: cmd/tagger/*.go
