@@ -335,6 +335,18 @@ resource "aws_cloudfront_origin_request_policy" "allow_querystring" {
   }
 }
 
+resource "aws_route53_record" "viewer_cloudfront" {
+  zone_id = aws_route53_zone.viewer.zone_id
+  name    = var.viewer_domain
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.viewer.domain_name
+    zone_id                = aws_cloudfront_distribution.viewer.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
 resource "aws_dynamodb_table" "item" {
   name         = "${var.origin_domain}-item"
   billing_mode = "PAY_PER_REQUEST"
@@ -357,11 +369,9 @@ resource "aws_dynamodb_table" "item" {
   }
 }
 
-data "aws_secretsmanager_random_password" "salt_for_private_image" {
-  password_length     = 32
-  exclude_numbers     = false
-  exclude_punctuation = true
-  include_space       = false
+resource "random_password" "salt_for_private_image" {
+  length  = 32
+  special = true
 }
 
 resource "aws_secretsmanager_secret" "salt_for_private_image" {
@@ -371,5 +381,5 @@ resource "aws_secretsmanager_secret" "salt_for_private_image" {
 
 resource "aws_secretsmanager_secret_version" "salt_for_private_image" {
   secret_id     = aws_secretsmanager_secret.salt_for_private_image.id
-  secret_string = data.aws_secretsmanager_random_password.salt_for_private_image.random_password
+  secret_string = random_password.salt_for_private_image.result
 }
