@@ -81,7 +81,7 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 		fl = int(_fl)
 	}
 	iso := 0
-	if _iso, ok := getExifField(e, exif.ISOSpeedRatings).(int); ok {
+	if _iso, ok := getExifField(e, exif.ISOSpeedRatings).(int64); ok {
 		iso = int(_iso)
 	}
 
