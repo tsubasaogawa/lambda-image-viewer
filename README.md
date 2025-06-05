@@ -2,19 +2,32 @@
 
 A simple image viewer using AWS Lambda + CloudFront + DynamoDB + S3.
 
-![Diagram](./docs/diagram.drawio.png)
-
 ## Features
+
+### CDN
+
+- Provides a typical S3-backed CDN via CloudFront.
+
+### Image Viewer
 
 ![Screenshot](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/ec35bdf9-1446-4f5c-a85e-3a82940aeef3)
 
+- Shows an image info (EXIF).
+
+### Camera Roll (Admin Page)
+
+![Screenshot](https://github.com/user-attachments/assets/fd366891-0974-4507-9f06-fcfd8045bb08)
+
+- You can list all uploaded images.
+
+## Structure
+
+![Diagram](./docs/diagram.drawio.png)
+
 - No ALB or API Gateway. The viewer uses Lambda Function URLs.
-- The viewer shows some EXIFs from DynamoDB.
 - S3-event-driven Tagger gets EXIF by a photo and puts to DynamoDB.
-- CloudFront delivery.
 
 ![DynamoDB item example](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/3ff31067-5d92-4d71-8bb5-8b2568558fc8)
-
 
 ## Requirements
 
@@ -28,7 +41,6 @@ You can also use **env to install easily.
 - [tsubasaogawa/slsenv](https://github.com/tsubasaogawa/slsenv)
 - [tfutils/tfenv](https://github.com/tfutils/tfenv)
 - [go-nv/goenv](https://github.com/go-nv/goenv)
-
 
 ## Usage
 
