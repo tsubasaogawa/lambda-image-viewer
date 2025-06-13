@@ -51,8 +51,11 @@
       {{ end }}
     </ul>
     <p>
-      {{ if ne $lk "" }}
-        <a href="/cameraroll/{{ $lk }}">Next</a>
+      {{ if ne .PrevLink "" }}
+        <a href="{{ .PrevLink }}">Previous</a>
+      {{ end }}
+      {{ if ne .NextLink "" }}
+        <a href="{{ .NextLink }}">Next</a>
       {{ end }}
     </p>
     <p id="private_mode">

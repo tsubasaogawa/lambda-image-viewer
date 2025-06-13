@@ -50,17 +50,26 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 			return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
 		}
 		isPrivate := q.Get("private") == "true"
-		if key == "" {
-			return camerarollGenerator.GenerateCamerarollHtml(nil, isPrivate)
-		}
-		parts := strings.SplitN(key, "/", 2)
-		id, _ := base64.URLEncoding.DecodeString(parts[0])
-		ts, _ := base64.URLEncoding.DecodeString(parts[1])
 
-		return camerarollGenerator.GenerateCamerarollHtml(dynamo.PagingKey{
-			"Id":        &dynamodb.AttributeValue{S: aws.String(string(id))},
-			"Timestamp": &dynamodb.AttributeValue{N: aws.String(string(ts))},
-		}, isPrivate)
+		var currentScanKey dynamo.PagingKey
+		var prevKeys []string
+		prevKeysParam := q.Get("prevKeys")
+		if prevKeysParam != "" {
+			prevKeys = strings.Split(prevKeysParam, ",")
+		}
+
+		// Determine the currentScanKey based on the 'key' path parameter
+		if key != "" {
+			parts := strings.SplitN(key, "/", 2)
+			id, _ := base64.URLEncoding.DecodeString(parts[0])
+			ts, _ := base64.URLEncoding.DecodeString(parts[1])
+			currentScanKey = dynamo.PagingKey{
+				"Id":        &dynamodb.AttributeValue{S: aws.String(string(id))},
+				"Timestamp": &dynamodb.AttributeValue{N: aws.String(string(ts))},
+			}
+		}
+
+		return camerarollGenerator.GenerateCamerarollHtml(currentScanKey, prevKeys, isPrivate)
 	default:
 		msg := "no route error"
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
