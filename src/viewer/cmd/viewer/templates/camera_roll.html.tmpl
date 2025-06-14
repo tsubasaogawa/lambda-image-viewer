@@ -107,6 +107,7 @@
       privateModeCheckbox.addEventListener('change', function() {
         const currentUrl = new URL(window.location.href);
         // Remove all existing query parameters
+        currentUrl.pathname = '/cameraroll/';
         currentUrl.search = '';
         if (this.checked) {
           currentUrl.searchParams.set('private', 'true');
