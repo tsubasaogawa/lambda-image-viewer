@@ -55,7 +55,13 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 		var prevKeys []string
 		prevKeysParam := q.Get("prevKeys")
 		if prevKeysParam != "" {
-			prevKeys = strings.Split(prevKeysParam, ",")
+			var err error
+			prevKeys, err = camerarollGenerator.DecompressPrevKeys(prevKeysParam)
+			if err != nil {
+				log.Printf("Failed to decompress prevKeys: %v", err)
+				msg := fmt.Sprintf("failed to decompress prevKeys: %v", err)
+				return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
+			}
 		}
 
 		// Determine the currentScanKey based on the 'key' path parameter

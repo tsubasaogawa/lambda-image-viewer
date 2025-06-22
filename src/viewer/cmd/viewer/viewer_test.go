@@ -42,6 +42,12 @@ func (g *MockCamerarollGenerator) GenerateCamerarollHtml(currentScanKey dynamo.P
 	}, nil
 }
 
+func (g *MockCamerarollGenerator) DecompressPrevKeys(compressed string) ([]string, error) {
+	// Mock implementation: for testing, we can just return an empty slice or a predefined one
+	// depending on the test case. For now, return an empty slice and no error.
+	return []string{}, nil
+}
+
 func TestIndex(t *testing.T) {
 	// Assign mock objects to global variables
 	originalImageGenerator = imageGenerator
