@@ -15,6 +15,7 @@ type MetadataGenerator interface {
 
 type CamerarollGenerator interface {
 	GenerateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, isPrivate bool) (events.LambdaFunctionURLResponse, error)
+	DecompressPrevKeys(compressed string) ([]string, error) // Add this line
 }
 
 type DefaultImageGenerator struct{}
@@ -33,4 +34,8 @@ type DefaultCamerarollGenerator struct{}
 
 func (g *DefaultCamerarollGenerator) GenerateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
 	return generateCamerarollHtml(currentScanKey, prevKeys, isPrivate)
+}
+
+func (g *DefaultCamerarollGenerator) DecompressPrevKeys(compressed string) ([]string, error) {
+	return decompressPrevKeys(compressed)
 }

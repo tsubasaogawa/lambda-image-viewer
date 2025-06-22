@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	_ "embed"
 	"encoding/base64"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -32,9 +35,9 @@ type CameraRollData struct {
 	ImgWidthToClipboard  uint64
 	ImgHeightToClipboard uint64
 	LastKey              string
-	PrevKeys             []string // Add this line to store the history of scan keys
-	NextLink             string   // Add this line
-	PrevLink             string   // Add this line
+	PrevKeys             []string
+	NextLink             string
+	PrevLink             string
 	IsPrivate            bool
 	SaltForPrivateImage  string
 }
@@ -63,7 +66,13 @@ func generateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, 
 		if currentKeyStr != "" {
 			newPrevKeys = append(newPrevKeys, currentKeyStr)
 		}
-		nextLink = fmt.Sprintf("/cameraroll/%s?prevKeys=%s", generateLastEvaluatedKeyQueryString(lk), url.QueryEscape(strings.Join(newPrevKeys, ",")))
+		compressedPrevKeys, err := compressPrevKeys(newPrevKeys)
+		if err != nil {
+			log.Printf("Failed to compress prevKeys for nextLink: %v", err)
+			// Fallback to uncompressed or handle error appropriately
+			compressedPrevKeys = strings.Join(newPrevKeys, ",")
+		}
+		nextLink = fmt.Sprintf("/cameraroll/%s?prevKeys=%s", generateLastEvaluatedKeyQueryString(lk), url.QueryEscape(compressedPrevKeys))
 		if isPrivate {
 			nextLink += "&private=true"
 		}
@@ -75,7 +84,13 @@ func generateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, 
 		prevKeyToNavigate := prevKeys[len(prevKeys)-1]  // Get the last key from the history
 		remainingPrevKeys := prevKeys[:len(prevKeys)-1] // Remove the last key from the history
 
-		prevLink = fmt.Sprintf("/cameraroll/%s?prevKeys=%s", prevKeyToNavigate, url.QueryEscape(strings.Join(remainingPrevKeys, ",")))
+		compressedRemainingPrevKeys, err := compressPrevKeys(remainingPrevKeys)
+		if err != nil {
+			log.Printf("Failed to compress remainingPrevKeys for prevLink: %v", err)
+			// Fallback to uncompressed or handle error appropriately
+			compressedRemainingPrevKeys = strings.Join(remainingPrevKeys, ",")
+		}
+		prevLink = fmt.Sprintf("/cameraroll/%s?prevKeys=%s", prevKeyToNavigate, url.QueryEscape(compressedRemainingPrevKeys))
 		if isPrivate {
 			prevLink += "&private=true"
 		}
@@ -115,4 +130,42 @@ func generateLastEvaluatedKeyQueryString(lk dynamo.PagingKey) string {
 		base64.URLEncoding.EncodeToString([]byte(*lk["Id"].S)),
 		base64.URLEncoding.EncodeToString([]byte(*lk["Timestamp"].N)),
 	)
+}
+
+// compressPrevKeys compresses the slice of previous keys into a base64 encoded string.
+func compressPrevKeys(prevKeys []string) (string, error) {
+	var b bytes.Buffer
+	gz := gzip.NewWriter(&b)
+	_, err := gz.Write([]byte(strings.Join(prevKeys, ",")))
+	if err != nil {
+		return "", fmt.Errorf("failed to write to gzip writer: %w", err)
+	}
+	if err := gz.Close(); err != nil {
+		return "", fmt.Errorf("failed to close gzip writer: %w", err)
+	}
+	return base64.URLEncoding.EncodeToString(b.Bytes()), nil
+}
+
+// decompressPrevKeys decompresses a base64 encoded string into a slice of previous keys.
+func decompressPrevKeys(compressed string) ([]string, error) {
+	if compressed == "" {
+		return []string{}, nil
+	}
+	data, err := base64.URLEncoding.DecodeString(compressed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode base64 string: %w", err)
+	}
+
+	b := bytes.NewReader(data)
+	gz, err := gzip.NewReader(b)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer gz.Close()
+
+	decompressed, err := io.ReadAll(gz)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read from gzip reader: %w", err)
+	}
+	return strings.Split(string(decompressed), ","), nil
 }
