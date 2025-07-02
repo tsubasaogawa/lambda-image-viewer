@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -28,12 +29,23 @@ func Index(ctx context.Context, event events.S3Event) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
+	svc := s3.New(sess)
 
-	if err := invokeThumbnailGenerator(sess, event); err != nil {
-		log.Println(err)
+	// If event is empty, fetch all jpg objects from S3.
+	// Otherwise, invoke thumbnail generator for the given event.
+	if len(event.Records) == 0 {
+		log.Println("event is empty. Fetching all objects from S3.")
+		records, err := listAllImageObjects(svc, "photo.ogatube.com", "blog/")
+		if err != nil {
+			log.Fatal(err)
+		}
+		event.Records = records
+	} else {
+		if err := invokeThumbnailGenerator(sess, event); err != nil {
+			log.Println(err)
+		}
 	}
 
-	svc := s3.New(sess)
 	for _, r := range event.Records {
 		log.Printf("s3://%s/%s\n", r.S3.Bucket.Name, r.S3.Object.Key)
 		obj, err := svc.GetObject(&s3.GetObjectInput{
@@ -161,4 +173,50 @@ func invokeThumbnailGenerator(sess *session.Session, event events.S3Event) error
 	log.Println(r)
 
 	return nil
+}
+
+// listAllImageObjects retrieves all jpg objects from the specified S3 bucket and prefix.
+// It paginates through the results from S3.
+func listAllImageObjects(svc *s3.S3, bucket, prefix string) ([]events.S3EventRecord, error) {
+	var records []events.S3EventRecord
+	input := &s3.ListObjectsV2Input{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String(prefix),
+	}
+
+	for {
+		// Get a page of objects
+		output, err := svc.ListObjectsV2(input)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list objects: %w", err)
+		}
+
+		// Process objects in the current page
+		for _, item := range output.Contents {
+			if !strings.HasSuffix(aws.StringValue(item.Key), ".jpg") {
+				continue
+			}
+			record := events.S3EventRecord{
+				S3: events.S3Entity{
+					Bucket: events.S3Bucket{
+						Name: bucket,
+					},
+					Object: events.S3Object{
+						Key: aws.StringValue(item.Key),
+					},
+				},
+			}
+			records = append(records, record)
+		}
+
+		// If the result is not truncated, we're done.
+		if !aws.BoolValue(output.IsTruncated) {
+			break
+		}
+
+		// Set the token for the next page request.
+		input.ContinuationToken = output.NextContinuationToken
+	}
+
+	return records, nil
 }
