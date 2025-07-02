@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -29,25 +28,35 @@ var (
 )
 
 type CameraRollData struct {
-	Thumbnails           *[]model.Thumbnail
-	OriginDomain         string
-	ViewerDomain         string
-	ImgWidthToClipboard  uint64
-	ImgHeightToClipboard uint64
-	LastKey              string
-	PrevKeys             []string
-	NextLink             string
-	PrevLink             string
-	IsPrivate            bool
-	SaltForPrivateImage  string
+	Thumbnails          *[]model.Thumbnail
+	OriginDomain        string
+	ViewerDomain        string
+	LastKey             string
+	PrevKeys            []string
+	NextLink            string
+	PrevLink            string
+	IsPrivate           bool
+	SaltForPrivateImage string
 }
 
 func generateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
-	thumbs, lk, err := model.New().ListThumbnails(MAX_THUMBNAIL_PER_PAGE, currentScanKey)
+	m := model.New()
+	thumbs, lk, err := m.ListThumbnails(MAX_THUMBNAIL_PER_PAGE, currentScanKey)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("lastEvaluatedKey = %+v\n", lk)
+
+	// Get metadata
+	for i, thumb := range *thumbs {
+		meta, err := m.GetMetadata(thumb.Id)
+		if err != nil {
+			log.Printf("Failed to get metadata for %s: %v", thumb.Id, err)
+			continue
+		}
+		(*thumbs)[i].Width = meta.Width
+		(*thumbs)[i].Height = meta.Height
+	}
 
 	cr, err := template.New("cameraroll").Parse(crTmpl)
 	if err != nil {
@@ -55,8 +64,6 @@ func generateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, 
 	}
 
 	w := new(strings.Builder)
-	width, _ := strconv.ParseUint(os.Getenv("IMG_WIDTH_TO_CLIPBOARD"), 10, 64)
-	height, _ := strconv.ParseUint(os.Getenv("IMG_HEIGHT_TO_CLIPBOARD"), 10, 64)
 	// Generate NextLink
 	nextLink := ""
 	if len(lk) > 0 {
@@ -102,17 +109,15 @@ func generateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, 
 	}
 
 	if err = cr.Execute(w, CameraRollData{
-		Thumbnails:           thumbs,
-		OriginDomain:         os.Getenv("ORIGIN_DOMAIN"),
-		ViewerDomain:         os.Getenv("VIEWER_DOMAIN"),
-		ImgWidthToClipboard:  width,
-		ImgHeightToClipboard: height,
-		LastKey:              generateLastEvaluatedKeyQueryString(lk),
-		PrevKeys:             prevKeys, // Pass the prevKeys slice to the template
-		NextLink:             nextLink,
-		PrevLink:             prevLink,
-		IsPrivate:            isPrivate,
-		SaltForPrivateImage:  os.Getenv("SALT_FOR_PRIVATE_IMAGE"),
+		Thumbnails:          thumbs,
+		OriginDomain:        os.Getenv("ORIGIN_DOMAIN"),
+		ViewerDomain:        os.Getenv("VIEWER_DOMAIN"),
+		LastKey:             generateLastEvaluatedKeyQueryString(lk),
+		PrevKeys:            prevKeys, // Pass the prevKeys slice to the template
+		NextLink:            nextLink,
+		PrevLink:            prevLink,
+		IsPrivate:           isPrivate,
+		SaltForPrivateImage: os.Getenv("SALT_FOR_PRIVATE_IMAGE"),
 	}); err != nil {
 		return responseHtml("", 500, Headers{}), err
 	}

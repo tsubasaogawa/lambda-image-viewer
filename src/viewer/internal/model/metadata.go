@@ -15,6 +15,8 @@ type Metadata struct {
 	FocalLength int     `json:"focal_length"`
 	ISO         int     `json:"iso"`
 	SS          string  `json:"shutter_speed"`
+	Width       int32   `json:"width"`
+	Height      int32   `json:"height"`
 }
 
 func (t *Table) GetMetadata(id string) (*Metadata, error) {

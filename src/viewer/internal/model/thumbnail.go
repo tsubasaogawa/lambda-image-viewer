@@ -11,6 +11,8 @@ type Thumbnail struct {
 	Id        string `json:"id"`
 	Timestamp int64  `json:"timestamp"`
 	Private   bool   `json:"private"`
+	Width     int32  `json:"width"`
+	Height    int32  `json:"height"`
 }
 
 func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]Thumbnail, dynamo.PagingKey, error) {
