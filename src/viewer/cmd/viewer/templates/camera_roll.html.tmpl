@@ -32,8 +32,6 @@
   <body>
     {{ $origin := .OriginDomain }}
     {{ $viewer := .ViewerDomain }}
-    {{ $width := .ImgWidthToClipboard }}
-    {{ $height := .ImgHeightToClipboard }}
     {{ $lk := .LastKey }}
     {{ $isPrivate := .IsPrivate }}
     <ul>
@@ -43,7 +41,7 @@
             <div class="thumbnailBox">
               <a href="https://{{ $viewer }}/image/{{ $thumb.Id }}"><img data-src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" class="thumbnailImage" data-private="{{ $thumb.Private }}" /></a>
               {{ if not $thumb.Private }}
-                <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", {{ $width }}, {{ $height }}, {{ $i }})'>📋</button>
+                <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", {{ $thumb.Width }}, {{ $thumb.Height }}, {{ $i }})'>📋</button>
               {{ end }}
             </div>
           </li>

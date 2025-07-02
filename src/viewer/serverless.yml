@@ -14,7 +14,12 @@ provider:
         - "s3:HeadObject*"
         - "s3:GetObject*"
         - "s3:PutObject*"
+        - "s3:ListObjects"
       Resource: "arn:aws:s3:::${env:ORIGIN_DOMAIN}/*"
+    - Effect: "Allow"
+      Action:
+        - "s3:ListBucket"
+      Resource: "arn:aws:s3:::${env:ORIGIN_DOMAIN}"
     - Effect: "Allow"
       Action:
         - "dynamodb:GetItem"
@@ -61,15 +66,16 @@ functions:
       ORIGIN_DOMAIN: ${env:ORIGIN_DOMAIN}
       VIEWER_DOMAIN: ${env:VIEWER_DOMAIN}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
-      IMG_WIDTH_TO_CLIPBOARD: 1024
-      IMG_HEIGHT_TO_CLIPBOARD: 681
       SALT_FOR_PRIVATE_IMAGE: ${ssm:/aws/reference/secretsmanager/${env:ORIGIN_DOMAIN}-salt-for-private-image, "DEPLOY_AGAIN_AFTER_APPLY"}
 
   tagger:
     handler: cmd/tagger/*.go
     url: false
+    memorySize: 256
+    timeout: 900
     environment:
       REGION: ${env:REGION}
+      ORIGIN_DOMAIN: ${env:ORIGIN_DOMAIN}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
       THUMBNAIL_FUNCTION_NAME: "lambda-image-viewer-${sls:stage}-thumbnail"
     events:

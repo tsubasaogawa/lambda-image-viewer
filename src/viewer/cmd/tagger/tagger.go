@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/jpeg" // for image.DecodeConfig
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -35,11 +39,11 @@ func Index(ctx context.Context, event events.S3Event) {
 	// Otherwise, invoke thumbnail generator for the given event.
 	if len(event.Records) == 0 {
 		log.Println("event is empty. Fetching all objects from S3.")
-		records, err := listAllImageObjects(svc, "photo.ogatube.com", "blog/")
+		r, err := listAllImageObjects(svc, os.Getenv("ORIGIN_DOMAIN"), "blog/IMG_") // TODO: prefix should be event input
 		if err != nil {
 			log.Fatal(err)
 		}
-		event.Records = records
+		event.Records = r
 	} else {
 		if err := invokeThumbnailGenerator(sess, event); err != nil {
 			log.Println(err)
@@ -55,13 +59,17 @@ func Index(ctx context.Context, event events.S3Event) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		e, err := exif.Decode(obj.Body)
+
+		var buf bytes.Buffer
+		tee := io.TeeReader(obj.Body, &buf)
+
+		e, err := exif.Decode(tee)
 		if err != nil {
 			log.Println(err)
 			e = &exif.Exif{}
 		}
 
-		meta, err := FillMetadataByExif(e)
+		meta, err := FillMetadataByExif(e, &buf)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -75,7 +83,16 @@ func Index(ctx context.Context, event events.S3Event) {
 	}
 }
 
-func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
+func FillMetadataByExif(e *exif.Exif, r io.Reader) (*model.Metadata, error) {
+	// Get image dimensions
+	config, _, err := image.DecodeConfig(r)
+	if err != nil {
+		log.Println("Failed to decode image config:", err)
+		// Assign default values or handle error as appropriate
+		config.Width = 0
+		config.Height = 0
+	}
+
 	ts, err := getLocalUnixtime(e)
 	if err != nil {
 		log.Println("Timestamp will be set as Now because getLocalUnixtime() got an error: " + err.Error())
@@ -115,6 +132,8 @@ func FillMetadataByExif(e *exif.Exif) (*model.Metadata, error) {
 		FocalLength: fl,
 		ISO:         iso,
 		SS:          ss,
+		Width:       int32(config.Width),
+		Height:      int32(config.Height),
 	}, nil
 }
 
