@@ -59,17 +59,22 @@ func Index(ctx context.Context, event events.S3Event) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer obj.Body.Close()
 
-		var buf bytes.Buffer
-		tee := io.TeeReader(obj.Body, &buf)
+		body, err := io.ReadAll(obj.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		e, err := exif.Decode(tee)
+		exifReader := bytes.NewReader(body)
+		e, err := exif.Decode(exifReader)
 		if err != nil {
 			log.Println(err)
 			e = &exif.Exif{}
 		}
 
-		meta, err := FillMetadataByExif(e, &buf)
+		configReader := bytes.NewReader(body)
+		meta, err := FillMetadataByExif(e, configReader)
 		if err != nil {
 			log.Fatal(err)
 		}
