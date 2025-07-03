@@ -57,7 +57,8 @@ func Index(ctx context.Context, event events.S3Event) {
 			Key:    aws.String(r.S3.Object.Key),
 		})
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("ERROR: could not get object %s/%s: %v", r.S3.Bucket.Name, r.S3.Object.Key, err)
+			continue
 		}
 		defer obj.Body.Close()
 
