@@ -14,7 +14,12 @@ provider:
         - "s3:HeadObject*"
         - "s3:GetObject*"
         - "s3:PutObject*"
+        - "s3:ListObjects"
       Resource: "arn:aws:s3:::${env:ORIGIN_DOMAIN}/*"
+    - Effect: "Allow"
+      Action:
+        - "s3:ListBucket"
+      Resource: "arn:aws:s3:::${env:ORIGIN_DOMAIN}"
     - Effect: "Allow"
       Action:
         - "dynamodb:GetItem"
@@ -66,8 +71,11 @@ functions:
   tagger:
     handler: cmd/tagger/*.go
     url: false
+    memorySize: 256
+    timeout: 900
     environment:
       REGION: ${env:REGION}
+      ORIGIN_DOMAIN: ${env:ORIGIN_DOMAIN}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
       THUMBNAIL_FUNCTION_NAME: "lambda-image-viewer-${sls:stage}-thumbnail"
     events:
