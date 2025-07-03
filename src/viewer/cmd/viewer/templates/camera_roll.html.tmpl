@@ -92,7 +92,7 @@
       })();
 
       function copy(key, w, h, id) {
-        const tag = `<img class="load-exif" src="https://{{ $origin }}/${key}" width="${w}" height="${h}" loading="lazy">`;
+        const tag = '<img class="load-exif" src="https://{{ $origin }}/' + key + '" width="' + w + '" height="' + h + '" loading="lazy">';
         navigator.clipboard.writeText(tag);
         let btn = document.getElementById("copybtn" + id);
         btn.innerText = "✅";
