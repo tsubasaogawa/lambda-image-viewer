@@ -50,10 +50,11 @@
     </ul>
     <p>
       {{ if ne .PrevLink "" }}
-        <a href="{{ .PrevLink }}">Previous</a>
+        <a href="{{ .PrevLink }}">Previous</a> &#124;
       {{ end }}
+      <a href="/cameraroll/">Home</a>
       {{ if ne .NextLink "" }}
-        <a href="{{ .NextLink }}">Next</a>
+      &#124; <a href="{{ .NextLink }}">Next</a>
       {{ end }}
     </p>
     <p id="private_mode">
