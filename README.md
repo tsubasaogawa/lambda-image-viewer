@@ -2,20 +2,28 @@
 
 A simple image viewer using AWS Lambda + CloudFront + DynamoDB + S3.
 
+I used to use Flickr as a storage for blog images, but for several reasons (mainly financial), I needed an alternative. Therefore, I am prioritizing the implementation of features that are essential for my personal use.
+
 ## Features
 
 ### CDN
+
+route: `<CDN Domain>/.../foo.jpg`
 
 - Provides a standard S3-backed CDN via CloudFront.
 - Private mode: Images in the `private` folder are accessible only with the appropriate token query.
 
 ### Image Viewer
 
+route: `<Viewer Domain>/image/.../foo.jpg`
+
 ![Screenshot](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/ec35bdf9-1446-4f5c-a85e-3a82940aeef3)
 
 - Shows an image info (EXIF).
 
 ### Camera Roll (Admin Page)
+
+route: `<Viewer Domain>/cameraroll/`
 
 ![Screenshot](https://github.com/user-attachments/assets/fd366891-0974-4507-9f06-fcfd8045bb08)
 
@@ -26,7 +34,7 @@ A simple image viewer using AWS Lambda + CloudFront + DynamoDB + S3.
 
 ![Diagram](./docs/diagram.drawio.png)
 
-- No ALB or API Gateway. The viewer uses Lambda Function URLs.
+- No ALB and API Gateway. The viewer uses Lambda Function URLs.
 - S3-event-driven Tagger gets EXIF by a photo and puts to DynamoDB.
 
 ![DynamoDB item example](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/3ff31067-5d92-4d71-8bb5-8b2568558fc8)
