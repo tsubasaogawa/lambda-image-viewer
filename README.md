@@ -34,7 +34,7 @@ route: `<Viewer Domain>/cameraroll/`
 
 ![Diagram](./docs/diagram.drawio.png)
 
-- No ALB and API Gateway. The viewer uses Lambda Function URLs.
+- No ALB or API Gateway. The viewer uses Lambda Function URLs.
 - S3-event-driven Tagger gets EXIF by a photo and puts to DynamoDB.
 
 ![DynamoDB item example](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/3ff31067-5d92-4d71-8bb5-8b2568558fc8)
