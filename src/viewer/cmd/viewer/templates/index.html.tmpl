@@ -5,55 +5,74 @@
     <title>{{ .Metadata.Title }}</title>
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
     <style media="screen">
-    <!--
       body {
         margin: 0;
         padding: 0;
         font-family: 'Open Sans', sans-serif;
-      }
-
-      div#image {
+        background-color: #000;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
         height: 100vh;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center center;
-        background-image: url({{ .Url }});
       }
 
-      ul#exif {
-        text-align: center;
-        list-style-type: none;
-        margin-top: 4rem;
+      #image-container {
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
       }
 
-      li#title {
+      #image-container img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+      }
+
+      #exif-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        padding: 1rem 2rem;
+        text-align: left;
+      }
+
+      #exif-container p {
+        margin: 0.5rem 0;
+      }
+
+      .title {
         font-size: 1.2rem;
         font-weight: bold;
       }
 
-      li#camera/lens {
-        font-size: 1.1rem;
+      .details {
+        font-size: 1rem;
       }
 
-      li#camera/lens, li#focal_length, li#F, li#SS, li#ISO {
-        display: inline;
+      .timestamp {
+        font-size: 0.9rem;
+        color: #ccc;
       }
-    -->
     </style>
   </head>
   <body>
-    <div id="image"></div>
-    <div>
-      <ul id="exif">
-        <li id="title">{{ .Metadata.Title }}</li>
-        <li id="camera/lens">{{ .Metadata.Camera }} / {{ .Metadata.Lens }}</li>
-        <li id="focal_length">{{ .Metadata.FocalLength }}mm, F{{ .Metadata.F }}, {{ .Metadata.SS }}s, ISO{{ .Metadata.ISO }}</li>
-        <li id="timestamp"></li>
-      </ul>
+    <div id="image-container">
+      <img src="{{ .Url }}" alt="{{ .Metadata.Title }}">
     </div>
+    <div id="exif-container">
+      <p class="title">{{ .Metadata.Title }}</p>
+      <p class="details">{{ .Metadata.Camera }} / {{ .Metadata.Lens }}</p>
+      <p class="details">{{ .Metadata.FocalLength }}mm, F{{ .Metadata.F }}, {{ .Metadata.SS }}s, ISO{{ .Metadata.ISO }}</p>
+      <p class="timestamp"></p>
+    </div>
+
   <script>
     const dt = new Date({{ .Metadata.Timestamp }} * 1000);
-    document.querySelector('#timestamp').insertAdjacentText('afterbegin', `Shot on ${dt.toUTCString()}`);
+    document.querySelector('.timestamp').insertAdjacentText('afterbegin', `Shot on ${dt.toUTCString()}`);
   </script>
   </body>
 </html>
