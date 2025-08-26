@@ -72,7 +72,7 @@
 
   <script>
     const dt = new Date({{ .Metadata.Timestamp }} * 1000);
-    document.querySelector('.timestamp').insertAdjacentText('afterbegin', `Shot on ${dt.toUTCString()}`);
+    document.querySelector('.timestamp').insertAdjacentText('afterbegin', `Shot on ${dt.toUTCString().replace('GMT', '')}`);
   </script>
   </body>
 </html>
