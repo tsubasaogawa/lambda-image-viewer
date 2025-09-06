@@ -17,7 +17,7 @@ route: `<CDN Domain>/.../foo.jpg`
 
 route: `<Viewer Domain>/image/.../foo.jpg`
 
-![Screenshot](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/ec35bdf9-1446-4f5c-a85e-3a82940aeef3)
+<img width="2280" height="1512" alt="image" src="https://github.com/user-attachments/assets/b28f7289-b46f-4cb3-a73a-aeeef89f45bb" />
 
 - Shows an image info (EXIF).
 
@@ -34,7 +34,7 @@ route: `<Viewer Domain>/cameraroll/`
 
 ![Diagram](./docs/diagram.drawio.png)
 
-- No ALB or API Gateway. The viewer uses Lambda Function URLs.
+- The viewer does not use ALB but Lambda Function URLs.
 - S3-event-driven Tagger gets EXIF by a photo and puts to DynamoDB.
 
 ![DynamoDB item example](https://github.com/tsubasaogawa/lambda-image-viewer/assets/7788821/3ff31067-5d92-4d71-8bb5-8b2568558fc8)
