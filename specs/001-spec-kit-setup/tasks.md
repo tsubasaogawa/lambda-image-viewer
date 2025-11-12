@@ -17,17 +17,17 @@
 - [x] T003 [P] [US1] `.gemini/config.yaml` ファイルを生成する
 - [x] T004 [P] [US1] `.gemini/commands/speckit.analyze.toml` ファイルを生成する
 - [x] T005 [P] [US1] `.gemini/commands/speckit.checklist.toml` ファイルを生成する
-- [ ] T006 [P] [US1] `.gemini/commands/speckit.clarify.toml` ファイルを生成する
-- [ ] T007 [P] [US1] `.gemini/commands/speckit.constitution.toml` ファイルを生成する
-- [ ] T008 [P] [US1] `.gemini/commands/speckit.implement.toml` ファイルを生成する
-- [ ] T009 [P] [US1] `.gemini/commands/speckit.plan.toml` ファイルを生成する
-- [ ] T010 [P] [US1] `.gemini/commands/speckit.specify.toml` ファイルを生成する
-- [ ] T011 [P] [US1] `.gemini/commands/speckit.tasks.toml` ファイルを生成する
+- [x] T006 [P] [US1] `.gemini/commands/speckit.clarify.toml` ファイルを生成する
+- [x] T007 [P] [US1] `.gemini/commands/speckit.constitution.toml` ファイルを生成する
+- [x] T008 [P] [US1] `.gemini/commands/speckit.implement.toml` ファイルを生成する
+- [x] T009 [P] [US1] `.gemini/commands/speckit.plan.toml` ファイルを生成する
+- [x] T010 [P] [US1] `.gemini/commands/speckit.specify.toml` ファイルを生成する
+- [x] T011 [P] [US1] `.gemini/commands/speckit.tasks.toml` ファイルを生成する
 
 ## Phase 3: Polish & Cross-Cutting Concerns
 
-- [ ] T012 生成されたすべてのファイルが、それぞれのテンプレートに基づいた正しい内容を持っていることを確認する
-- [ ] T013 `.gitignore` に `.gemini/` が含まれていないことを確認し、含まれている場合は削除する
+- [x] T012 生成されたすべてのファイルが、それぞれのテンプレートに基づいた正しい内容を持っていることを確認する
+- [x] T013 `.gitignore` に `.gemini/` が含まれていないことを確認し、含まれている場合は削除する
 
 ## Dependencies
 
