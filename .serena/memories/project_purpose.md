@@ -1,0 +1,1 @@
+The project is a simple image viewer using AWS Lambda, CloudFront, DynamoDB, and S3. It serves as a personal alternative to Flickr, prioritizing essential features like a CDN, an image viewer with EXIF data, and an authenticated admin page (Camera Roll) for listing uploaded images.
