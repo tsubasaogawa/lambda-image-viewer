@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/guregu/dynamo"
+	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
 )
 
 type Headers map[string]string
@@ -20,7 +21,9 @@ type Headers map[string]string
 var (
 	imageGenerator      ImageGenerator      = &DefaultImageGenerator{}
 	metadataGenerator   MetadataGenerator   = &DefaultMetadataGenerator{}
-	camerarollGenerator CamerarollGenerator = &DefaultCamerarollGenerator{}
+	camerarollGenerator CamerarollGenerator = &DefaultCamerarollGenerator{
+		DB: model.New(),
+	}
 )
 
 func main() {
