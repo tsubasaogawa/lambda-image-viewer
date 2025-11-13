@@ -30,10 +30,12 @@ func (g *DefaultMetadataGenerator) GenerateMetadataJson(key string) (events.Lamb
 	return generateMetadataJson(key)
 }
 
-type DefaultCamerarollGenerator struct{}
+type DefaultCamerarollGenerator struct {
+	DB DB
+}
 
 func (g *DefaultCamerarollGenerator) GenerateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
-	return generateCamerarollHtml(currentScanKey, prevKeys, isPrivate)
+	return generateCamerarollHtml(g.DB, currentScanKey, prevKeys, isPrivate)
 }
 
 func (g *DefaultCamerarollGenerator) DecompressPrevKeys(compressed string) ([]string, error) {
