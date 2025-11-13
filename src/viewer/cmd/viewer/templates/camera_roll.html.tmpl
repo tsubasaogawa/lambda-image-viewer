@@ -38,7 +38,7 @@
       {{ range $i, $thumb := .Thumbnails }}
         {{ if or (and $isPrivate $thumb.Private) (and (not $isPrivate) (not $thumb.Private)) }}
           <li>
-            <div class="thumbnailBox">
+            <div class="thumbnailBox" id="{{ $thumb.Timestamp }}">
               <a href="https://{{ $viewer }}/image/{{ $thumb.Id }}"><img data-src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" class="thumbnailImage" data-private="{{ $thumb.Private }}" /></a>
               {{ if not $thumb.Private }}
                 <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", {{ $thumb.Width }}, {{ $thumb.Height }}, {{ $i }})'>📋</button>
