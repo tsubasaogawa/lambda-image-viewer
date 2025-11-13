@@ -39,9 +39,13 @@ type CameraRollData struct {
 	SaltForPrivateImage string
 }
 
-func generateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
-	m := model.New()
-	thumbs, lk, err := m.ListThumbnails(MAX_THUMBNAIL_PER_PAGE, currentScanKey)
+type DB interface {
+	ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]model.Thumbnail, dynamo.PagingKey, error)
+	GetMetadata(id string) (*model.Metadata, error)
+}
+
+func generateCamerarollHtml(db DB, currentScanKey dynamo.PagingKey, prevKeys []string, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
+	thumbs, lk, err := db.ListThumbnails(MAX_THUMBNAIL_PER_PAGE, currentScanKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,7 +53,7 @@ func generateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, 
 
 	// Get metadata
 	for i, thumb := range *thumbs {
-		meta, err := m.GetMetadata(thumb.Id)
+		meta, err := db.GetMetadata(thumb.Id)
 		if err != nil {
 			log.Printf("Failed to get metadata for %s: %v", thumb.Id, err)
 			continue

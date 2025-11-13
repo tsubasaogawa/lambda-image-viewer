@@ -16,7 +16,7 @@
 *Independent Test: ページを検証し、各画像にタイムスタンプIDを持つ`<div>`タグがあることを確認できる。*
 
 - [x] T002 [US1] `camera_roll.html.tmpl`を更新し、`<div class="thumbnailBox">`に`id="{{.Timestamp}}"`を追加する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
-- [ ] T003 [US1] テンプレートのレンダリングテストに、`id`属性が正しく設定されることを検証するアサーションを追加する `src/viewer/cmd/viewer/viewer_test.go`
+- [x] T003 [US1] テンプレートのレンダリングテストに、`id`属性が正しく設定されることを検証するアサーションを追加する `src/viewer/cmd/viewer/viewer_test.go`
 
 ## Dependencies
 
