@@ -1,6 +1,6 @@
 # Feature Specification: カメラ画像の月別グルーピング
 
-**Feature Branch**: `001-cameraroll-monthly-grouping`  
+**Feature Branch**: `003-cameraroll-monthly-grouping`  
 **Created**: 2025-11-14  
 **Status**: Draft  
 **Input**: User description: "cameraroll の画面改修依頼。現在、<ul> タグですべての画像をひとまとめにしているが、これを画像のタイムスタンプから得られる月ごとにグルーピングしてほしい。例えば、<ul id="thumbs-2025-10">, <ul id="thumbs-2025-09"> など。"
