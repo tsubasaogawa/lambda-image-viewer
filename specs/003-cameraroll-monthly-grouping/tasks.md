@@ -5,7 +5,7 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 `camera_roll.html.tmpl` の `div.thumbnailBox` に `data-timestamp` 属性を追加し、画像のタイムスタンプを埋め込む `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
+- [X] T001 `camera_roll.html.tmpl` の `div.thumbnailBox` に `data-timestamp` 属性を追加し、画像のタイムスタンプを埋め込む `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
 
 ## Phase 2: User Story 1 - 月別での画像表示
 
@@ -15,12 +15,12 @@
 
 ### Implementation Tasks
 
-- [ ] T002 [US1] ページロード時にDOM操作で月別グルーピングを行うJavaScriptの基本構造を追加する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
-- [ ] T003 [US1] `data-timestamp` 属性からタイムスタンプを読み取り、月ごとに画像をグループ化するロジックを実装する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
-- [ ] T004 [US1] グループ化されたデータに基づき、月ごとの見出しと `<ul id="thumbs-YYYY-MM">` を動的に生成し、DOMに挿入するロジックを実装する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
-- [ ] T005 [US1] 元のリストから画像要素を、新しく生成した月別の `<ul>` タグ内に移動させるロジックを実装する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
-- [ ] T006 [US1] 元の `<ul>` タグを空にするか、または削除する処理を追加する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
-- [ ] T007 [US1] グループを降順（新しい月が先頭）にソートして表示するロジックを実装する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
+- [X] T002 [US1] ページロード時にDOM操作で月別グルーピングを行うJavaScriptの基本構造を追加する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
+- [X] T003 [US1] `data-timestamp` 属性からタイムスタンプを読み取り、月ごとに画像をグループ化するロジックを実装する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
+- [X] T004 [US1] グループ化されたデータに基づき、月ごとの見出しと `<ul id="thumbs-YYYY-MM">` を動的に生成し、DOMに挿入するロジックを実装する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
+- [X] T005 [US1] 元のリストから画像要素を、新しく生成した月別の `<ul>` タグ内に移動させるロジックを実装する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
+- [X] T006 [US1] 元の `<ul>` タグを空にするか、または削除する処理を追加する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
+- [X] T007 [US1] グループを降順（新しい月が先頭）にソートして表示するロジックを実装する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
 
 ## Phase 3: Polish & Cross-Cutting Concerns
 

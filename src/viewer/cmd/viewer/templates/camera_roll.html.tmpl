@@ -38,7 +38,7 @@
       {{ range $i, $thumb := .Thumbnails }}
         {{ if or (and $isPrivate $thumb.Private) (and (not $isPrivate) (not $thumb.Private)) }}
           <li>
-            <div class="thumbnailBox" id="{{ $thumb.Timestamp }}">
+            <div class="thumbnailBox" id="{{ $thumb.Timestamp }}" data-timestamp="{{ $thumb.Timestamp }}">
               <a href="https://{{ $viewer }}/image/{{ $thumb.Id }}"><img data-src="https://{{ $origin }}/thumbnail/{{ $thumb.Id }}" width="133" height="133" class="thumbnailImage" data-private="{{ $thumb.Private }}" /></a>
               {{ if not $thumb.Private }}
                 <button id="copybtn{{ $i }}" onclick='copy("{{ $thumb.Id }}", {{ $thumb.Width }}, {{ $thumb.Height }}, {{ $i }})'>📋</button>
@@ -112,6 +112,59 @@
           currentUrl.searchParams.set('private', 'true');
         }
         window.location.href = currentUrl.toString();
+      });
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        try {
+          const thumbnailList = document.querySelector('ul');
+          if (!thumbnailList) return;
+
+          const thumbnails = Array.from(thumbnailList.querySelectorAll('li'));
+          if (thumbnails.length === 0) return;
+
+          const monthlyGroups = thumbnails.reduce((groups, li) => {
+            const thumbnailBox = li.querySelector('.thumbnailBox');
+            if (!thumbnailBox || !thumbnailBox.dataset.timestamp) {
+              return groups;
+            }
+            
+            const timestamp = parseInt(thumbnailBox.dataset.timestamp, 10);
+            if (isNaN(timestamp)) {
+              return groups;
+            }
+
+            const date = new Date(timestamp * 1000);
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const key = `${year}-${month}`;
+
+            if (!groups[key]) {
+              groups[key] = [];
+            }
+            groups[key].push(li);
+            return groups;
+          }, {});
+
+          const sortedKeys = Object.keys(monthlyGroups).sort().reverse();
+          const parent = thumbnailList.parentNode;
+
+          sortedKeys.forEach(key => {
+            const [year, month] = key.split('-');
+            const header = document.createElement('h2');
+            header.textContent = `${year}年${month}月`;
+            parent.insertBefore(header, thumbnailList);
+
+            const newUl = document.createElement('ul');
+            newUl.id = `thumbs-${key}`;
+            monthlyGroups[key].forEach(li => newUl.appendChild(li));
+            parent.insertBefore(newUl, thumbnailList);
+          });
+
+          parent.removeChild(thumbnailList);
+        } catch (e) {
+          console.error('Failed to group thumbnails by month:', e);
+        }
       });
     </script>
   </body>
