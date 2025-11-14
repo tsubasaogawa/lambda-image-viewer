@@ -24,8 +24,8 @@
 
 ## Phase 3: Polish & Cross-Cutting Concerns
 
-- [ ] T008 手動テストを実施し、画面のちらつきやJavaScriptエラーがないことを確認する
-- [ ] T009 [P] タイムスタンプが不正な形式の場合や、`data-timestamp` 属性が存在しない場合のエラーハンドリングを追加する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
+- [X] T008 手動テストを実施し、画面のちらつきやJavaScriptエラーがないことを確認する
+- [X] T009 [P] タイムスタンプが不正な形式の場合や、`data-timestamp` 属性が存在しない場合のエラーハンドリングを追加する `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl`
 
 ## Dependencies
 
