@@ -34,3 +34,9 @@ override.tf.json
 terraform.rc
 
 src/viewer/.env
+node_modules/
+*.out
+*.exe
+*.test
+vendor/
+
