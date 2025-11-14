@@ -152,7 +152,7 @@
           sortedKeys.forEach(key => {
             const [year, month] = key.split('-');
             const header = document.createElement('h2');
-            header.textContent = `${year}年${month}月`;
+            header.textContent = `${year}-${month}`;
             parent.insertBefore(header, thumbnailList);
 
             const newUl = document.createElement('ul');
