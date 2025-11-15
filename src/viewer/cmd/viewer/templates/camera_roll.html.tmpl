@@ -166,7 +166,19 @@
         for (const month in sorted) {
           const header = document.createElement('h2');
           header.classList.add('month-header');
-          header.textContent = month;
+
+          let date, year;
+          if (month !== 'Undefined') {
+            const [yearStr, monthStr] = month.split('-');
+            date = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1);
+            year = yearStr;
+          } else {
+            date = null;
+            year = '';
+          }
+
+          const monthName = date ? date.toLocaleString('en-US', { month: 'long' }) : 'Undefined';
+          header.textContent = `${monthName}, ${year}`;
           camerarollGrid.appendChild(header);
 
           for (const thumb of sorted[month]) {
