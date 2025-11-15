@@ -28,7 +28,7 @@
 
 - [x] T003 [P] [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<style>` タグ内に、グリッドコンテナ用のCSSを追加する。(`display: grid`, `grid-template-columns`, `gap`など)
 - [x] T004 [P] [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<style>` タグ内に、メディアクエリを使用して、異なる画面幅に応じたカラム数を定義するレスポンシブCSSを追加する。
-- [ ] T005 [P] [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<style>` タグ内に、月ヘッダー (`<h2>`など) のためのスタイルを追加する。
+- [x] T005 [P] [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<style>` タグ内に、月ヘッダー (`<h2>`など) のためのスタイルを追加する。
 
 ---
 
@@ -36,10 +36,10 @@
 
 **Goal**: JavaScriptを使用して、写真の月別グループ化とDOMへの描画を行う。
 
-- [ ] T006 [US1] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<script>` タグ内に、ページ読み込み時に `{{ .Thumbnails }}` から全サムネイルの情報をJavaScriptの配列に変換する処理を実装する。
-- [ ] T007 [US1] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<script>` タグ内に、サムネイル配列をタイムスタンプに基づいて月ごとにグループ化する関数を実装する。タイムスタンプがない場合は「Undefined」グループに分類する。
-- [ ] T008 [US1] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<script>` タグ内に、グループ化したデータを月（新しい順）でソートする処理を実装する。「Undefined」は最後に表示する。
-- [ ] T009 [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<script>` タグ内に、ソート済みのグループデータに基づいて、月のヘッダーと写真のサムネイルをグリッドコンテナ内に動的に生成し、DOMに追加する処理を実装する。(T001, T007, T008に依存)
+- [x] T006 [US1] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<script>` タグ内に、ページ読み込み時に `{{ .Thumbnails }}` から全サムネイルの情報をJavaScriptの配列に変換する処理を実装する。
+- [x] T007 [US1] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<script>` タグ内に、サムネイル配列をタイムスタンプに基づいて月ごとにグループ化する関数を実装する。タイムスタンプがない場合は「Undefined」グループに分類する。
+- [x] T008 [US1] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<script>` タグ内に、グループ化したデータを月（新しい順）でソートする処理を実装する。「Undefined」は最後に表示する。
+- [x] T009 [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<script>` タグ内に、ソート済みのグループデータに基づいて、月のヘッダーと写真のサムネイルをグリッドコンテナ内に動的に生成し、DOMに追加する処理を実装する。(T001, T007, T008に依存)
 
 ---
 
@@ -47,5 +47,5 @@
 
 **Purpose**: 最終的な品質向上と動作確認
 
-- [ ] T010 コード全体をレビューし、不要なコードの削除やコメントの追加を行う。
+- [x] T010 コード全体をレビューし、不要なコードの削除やコメントの追加を行う。
 - [ ] T011 `quickstart.md` に記載された手動テストを実行し、すべての要件が満たされていることを確認する。
