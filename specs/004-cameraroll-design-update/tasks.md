@@ -48,4 +48,18 @@
 **Purpose**: 最終的な品質向上と動作確認
 
 - [x] T010 コード全体をレビューし、不要なコードの削除やコメントの追加を行う。
-- [ ] T011 `quickstart.md` に記載された手動テストを実行し、すべての要件が満たされていることを確認する。
+- [x] T011 `quickstart.md` に記載された手動テストを実行し、すべての要件が満たされていることを確認する。
+
+## Phase 5: UI調整
+
+**Goal**: ユーザーからのフィードバックに基づいてUIを調整する。
+
+- [x] T012 `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` のグリッドコンテナの `gap` を調整し、横幅と縦幅の間隔を合わせる。
+- [x] T013 `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` のグリッドコンテナに左右の余白を追加する。
+
+## Phase 5: UI調整
+
+**Goal**: ユーザーからのフィードバックに基づいてUIを調整する。
+
+- [ ] T012 `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` のグリッドコンテナの `gap` を調整し、横幅と縦幅の間隔を合わせる。
+- [ ] T013 `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` のグリッドコンテナに左右の余白を追加する。
