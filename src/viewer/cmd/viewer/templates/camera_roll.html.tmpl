@@ -125,11 +125,11 @@
         return thumbnails.reduce((groups, thumb) => {
           const timestamp = thumb.timestamp;
           let key;
-            if (timestamp) {
+          if (timestamp) {
             const date = new Date(timestamp * 1000);
             const year = date.getFullYear();
-            const monthName = date.toLocaleString('en-US', { month: 'long' });
-            key = `${monthName}, ${year}`;
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            key = `${year}-${month}`;
           } else {
             key = "Undefined";
           }
@@ -166,7 +166,19 @@
         for (const month in sorted) {
           const header = document.createElement('h2');
           header.classList.add('month-header');
-          header.textContent = month;
+
+          let date, year;
+          if (month !== 'Undefined') {
+            const [yearStr, monthStr] = month.split('-');
+            date = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1);
+            year = yearStr;
+          } else {
+            date = null;
+            year = '';
+          }
+
+          const monthName = date ? date.toLocaleString('en-US', { month: 'long' }) : 'Undefined';
+          header.textContent = `${monthName}, ${year}`;
           camerarollGrid.appendChild(header);
 
           for (const thumb of sorted[month]) {
