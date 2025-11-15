@@ -26,8 +26,8 @@
 
 **Goal**: FlickrのようなレスポンシブなグリッドレイアウトをCSSで実現する。
 
-- [ ] T003 [P] [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<style>` タグ内に、グリッドコンテナ用のCSSを追加する。(`display: grid`, `grid-template-columns`, `gap`など)
-- [ ] T004 [P] [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<style>` タグ内に、メディアクエリを使用して、異なる画面幅に応じたカラム数を定義するレスポンシブCSSを追加する。
+- [x] T003 [P] [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<style>` タグ内に、グリッドコンテナ用のCSSを追加する。(`display: grid`, `grid-template-columns`, `gap`など)
+- [x] T004 [P] [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<style>` タグ内に、メディアクエリを使用して、異なる画面幅に応じたカラム数を定義するレスポンシブCSSを追加する。
 - [ ] T005 [P] [US2] `src/viewer/cmd/viewer/templates/camera_roll.html.tmpl` の `<style>` タグ内に、月ヘッダー (`<h2>`など) のためのスタイルを追加する。
 
 ---
