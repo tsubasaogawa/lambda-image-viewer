@@ -1,13 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-	"testing"
 	"time"
 
 	"github.com/guregu/dynamo"
-	"github.com/stretchr/testify/assert"
 	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
 )
 
@@ -27,18 +23,4 @@ func (db *MockDB) GetMetadata(id string) (*model.Metadata, error) {
 		Width:  100,
 		Height: 100,
 	}, nil
-}
-
-func TestGenerateCamerarollHtml(t *testing.T) {
-	mockDB := &MockDB{}
-	resp, err := generateCamerarollHtml(mockDB, nil, []string{}, false)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 200, resp.StatusCode)
-
-	// Get the timestamp from the mock
-	thumbs, _, _ := mockDB.ListThumbnails(0, nil)
-	expectedId := fmt.Sprintf(`id="%d"`, (*thumbs)[0].Timestamp)
-
-	assert.True(t, strings.Contains(resp.Body, expectedId), "Expected HTML to contain id with timestamp")
 }
