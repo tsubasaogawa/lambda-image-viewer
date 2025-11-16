@@ -56,6 +56,7 @@
     </style>
   </head>
   <body>
+    <h1>Camera Roll</h1>
     {{ $origin := .OriginDomain }}
     {{ $viewer := .ViewerDomain }}
     {{ $isPrivate := .IsPrivate }}
@@ -268,6 +269,5 @@
         await renderThumbnails(initialThumbnailsData);
       });
     </script>
-
   </body>
 </html>
