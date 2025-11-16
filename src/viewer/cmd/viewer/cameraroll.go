@@ -1,9 +1,9 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/base64"
 	"encoding/json"
-	_ "embed"
 	"html/template"
 	"log"
 	"os"
@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	DEFAULT_THUMBNAIL_PER_PAGE = 50
+	DEFAULT_THUMBNAIL_PER_PAGE = 500
 )
 
 var (
