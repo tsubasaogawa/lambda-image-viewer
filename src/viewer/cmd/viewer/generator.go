@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/guregu/dynamo"
 )
 
 type ImageGenerator interface {
@@ -23,12 +22,4 @@ type DefaultMetadataGenerator struct{}
 
 func (g *DefaultMetadataGenerator) GenerateMetadataJson(key string) (events.LambdaFunctionURLResponse, error) {
 	return generateMetadataJson(key)
-}
-
-type CamerarollGenerator interface {
-	CameraRollHandler(currentScanKey dynamo.PagingKey, prevKeys []string, isPrivate bool) (events.LambdaFunctionURLResponse, error)
-}
-
-type DefaultCamerarollGenerator struct {
-	DB DB
 }
