@@ -3,8 +3,12 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	_ "embed"
+	"html/template"
 	"log"
+	"os"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -16,6 +20,20 @@ const (
 	DEFAULT_THUMBNAIL_PER_PAGE = 50
 )
 
+var (
+	//go:embed templates/camera_roll.html.tmpl
+	crTmpl string
+)
+
+type CameraRollData struct {
+	Thumbnails          *[]model.Thumbnail
+	OriginDomain        string
+	ViewerDomain        string
+	LastKey             string
+	IsPrivate           bool
+	SaltForPrivateImage string
+}
+
 type CameraRollResponse struct {
 	Thumbnails       []model.Thumbnail `json:"thumbnails"`
 	LastEvaluatedKey string            `json:"last_evaluated_key"`
@@ -25,6 +43,49 @@ type DB interface {
 	ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]model.Thumbnail, dynamo.PagingKey, error)
 }
 
+// generateCameraRollHtml は、カメラロールの初期表示用のHTMLを生成します。
+func generateCameraRollHtml(db DB, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
+	thumbs, lk, err := db.ListThumbnails(DEFAULT_THUMBNAIL_PER_PAGE, nil)
+	if err != nil {
+		log.Printf("Failed to list thumbnails for HTML: %v", err)
+		return responseHtml("Internal server error", 500, Headers{}), err
+	}
+
+	var nextKey string
+	if len(lk) > 0 {
+		lkBytes, err := json.Marshal(lk)
+		if err != nil {
+			log.Printf("Failed to marshal last key for HTML: %v", err)
+			return responseHtml("Internal server error", 500, Headers{}), err
+		}
+		nextKey = base64.URLEncoding.EncodeToString(lkBytes)
+	}
+
+	tmpl, err := template.New("cameraroll").Parse(crTmpl)
+	if err != nil {
+		log.Printf("Failed to parse template: %v", err)
+		return responseHtml("Internal server error", 500, Headers{}), err
+	}
+
+	w := new(strings.Builder)
+	data := CameraRollData{
+		Thumbnails:          thumbs,
+		OriginDomain:        os.Getenv("ORIGIN_DOMAIN"),
+		ViewerDomain:        os.Getenv("VIEWER_DOMAIN"),
+		LastKey:             nextKey,
+		IsPrivate:           isPrivate,
+		SaltForPrivateImage: os.Getenv("SALT_FOR_PRIVATE_IMAGE"),
+	}
+
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("Failed to execute template: %v", err)
+		return responseHtml("Internal server error", 500, Headers{}), err
+	}
+
+	return responseHtml(w.String(), 200, Headers{"Cache-Control": "private"}), nil
+}
+
+// CameraRollHandler は、ページネーション用のJSON APIリクエストを処理します。
 func CameraRollHandler(db DB, lastEvaluatedKey string, limitStr string) (events.LambdaFunctionURLResponse, error) {
 	limit, err := strconv.ParseInt(limitStr, 10, 64)
 	if err != nil || limit == 0 {
@@ -46,7 +107,7 @@ func CameraRollHandler(db DB, lastEvaluatedKey string, limitStr string) (events.
 
 	thumbs, lk, err := db.ListThumbnails(limit, scanKey)
 	if err != nil {
-		log.Printf("Failed to list thumbnails: %v", err)
+		log.Printf("Failed to list thumbnails for API: %v", err)
 		return responseJson("Internal server error", 500, Headers{}), err
 	}
 
@@ -54,13 +115,12 @@ func CameraRollHandler(db DB, lastEvaluatedKey string, limitStr string) (events.
 	if len(lk) > 0 {
 		lkBytes, err := json.Marshal(lk)
 		if err != nil {
-			log.Printf("Failed to marshal last key: %v", err)
+			log.Printf("Failed to marshal last key for API: %v", err)
 			return responseJson("Internal server error", 500, Headers{}), err
 		}
 		nextKey = base64.URLEncoding.EncodeToString(lkBytes)
 	}
 
-	// `thumbs`がnilの場合に空のスライスを割り当てる
 	var thumbnailsToShow []model.Thumbnail
 	if thumbs != nil {
 		thumbnailsToShow = *thumbs
@@ -75,7 +135,7 @@ func CameraRollHandler(db DB, lastEvaluatedKey string, limitStr string) (events.
 
 	resBody, err := json.Marshal(res)
 	if err != nil {
-		log.Printf("Failed to marshal response: %v", err)
+		log.Printf("Failed to marshal response for API: %v", err)
 		return responseJson("Internal server error", 500, Headers{}), err
 	}
 

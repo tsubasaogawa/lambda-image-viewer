@@ -15,9 +15,9 @@ import (
 type Headers map[string]string
 
 var (
-	db              DB = model.New()
-	imageGenerator     = &DefaultImageGenerator{}
-	metadataGenerator  = &DefaultMetadataGenerator{}
+	db                DB = model.New()
+	imageGenerator       = &DefaultImageGenerator{}
+	metadataGenerator    = &DefaultMetadataGenerator{}
 )
 
 func main() {
@@ -50,9 +50,18 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 			msg := "query parsing error. query=" + r.RawQueryString
 			return responseJson(msg, 500, Headers{}), fmt.Errorf(msg)
 		}
+
 		lastEvaluatedKey := q.Get("last_evaluated_key")
 		limit := q.Get("limit")
-		return CameraRollHandler(db, lastEvaluatedKey, limit)
+		isPrivate := q.Get("private") == "true"
+
+		// If last_evaluated_key is present, it's an API call for the next page.
+		if lastEvaluatedKey != "" || limit != "" {
+			return CameraRollHandler(db, lastEvaluatedKey, limit)
+		}
+
+		// Otherwise, it's a request for the initial HTML page.
+		return generateCameraRollHtml(db, isPrivate)
 	default:
 		msg := "no route error"
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
