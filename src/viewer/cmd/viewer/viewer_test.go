@@ -5,14 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/guregu/dynamo"
 	"github.com/stretchr/testify/assert"
-)
-
-var (
-	originalImageGenerator      ImageGenerator
-	originalMetadataGenerator   MetadataGenerator
-	originalCamerarollGenerator CamerarollGenerator
 )
 
 type MockImageGenerator struct{}
@@ -33,35 +26,17 @@ func (g *MockMetadataGenerator) GenerateMetadataJson(key string) (events.LambdaF
 	}, nil
 }
 
-type MockCamerarollGenerator struct{}
-
-func (g *MockCamerarollGenerator) GenerateCamerarollHtml(currentScanKey dynamo.PagingKey, prevKeys []string, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
-	return events.LambdaFunctionURLResponse{
-		StatusCode: 200,
-		Body:       "mocked cameraroll",
-	}, nil
-}
-
-func (g *MockCamerarollGenerator) DecompressPrevKeys(compressed string) ([]string, error) {
-	// Mock implementation: for testing, we can just return an empty slice or a predefined one
-	// depending on the test case. For now, return an empty slice and no error.
-	return []string{}, nil
-}
-
 func TestIndex(t *testing.T) {
 	// Assign mock objects to global variables
-	originalImageGenerator = imageGenerator
-	originalMetadataGenerator = metadataGenerator
-	originalCamerarollGenerator = camerarollGenerator
+	originalImageGenerator := imageGenerator
+	originalMetadataGenerator := metadataGenerator
 
 	imageGenerator = &MockImageGenerator{}
 	metadataGenerator = &MockMetadataGenerator{}
-	camerarollGenerator = &MockCamerarollGenerator{}
 
 	defer func() {
 		imageGenerator = originalImageGenerator
 		metadataGenerator = originalMetadataGenerator
-		camerarollGenerator = originalCamerarollGenerator
 	}()
 
 	testCases := []struct {
@@ -83,18 +58,7 @@ func TestIndex(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedBody:   "mocked metadata",
 		},
-		{
-			name:           "cameraroll route",
-			rawPath:        "/cameraroll/",
-			expectedStatus: http.StatusOK,
-			expectedBody:   "mocked cameraroll",
-		},
-		{
-			name:           "cameraroll route with key",
-			rawPath:        "/cameraroll/testid/timestampid",
-			expectedStatus: http.StatusOK,
-			expectedBody:   "mocked cameraroll",
-		},
+		// Note: Cameraroll test is now in cameraroll_test.go
 		{
 			name:             "no route",
 			rawPath:          "/unknown/test",

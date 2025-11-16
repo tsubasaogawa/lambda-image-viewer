@@ -48,23 +48,22 @@
         font-size: 1.8em;
         border-bottom: 1px solid #eee;
       }
+      #loader {
+        text-align: center;
+        padding: 20px;
+        grid-column: 1 / -1;
+      }
     </style>
   </head>
   <body>
     {{ $origin := .OriginDomain }}
     {{ $viewer := .ViewerDomain }}
-    {{ $lk := .LastKey }}
     {{ $isPrivate := .IsPrivate }}
     <div id="cameraroll-grid">
     </div>
+    <div id="loader" style="display: none;">Loading...</div>
     <p>
-      {{ if ne .PrevLink "" }}
-        <a href="{{ .PrevLink }}">Previous</a> &#124;
-      {{ end }}
       <a href="/cameraroll/">Home</a>
-      {{ if ne .NextLink "" }}
-      &#124; <a href="{{ .NextLink }}">Next</a>
-      {{ end }}
     </p>
     <p id="private_mode">
       <input type="checkbox" id="privateModeCheckbox"> Switch to private mode
@@ -75,6 +74,11 @@
     <script src="https://{{ $origin }}/assets/generate_access_token.js"></script>
     <script>
       const salt = "{{ .SaltForPrivateImage }}";
+      let lastEvaluatedKey = "{{ .LastKey }}";
+      let isLoading = false;
+      const camerarollGrid = document.getElementById('cameraroll-grid');
+      const loader = document.getElementById('loader');
+      let lastMonth = "";
 
       // Check the checkbox if 'private=true' is already in the URL
       const urlParams = new URLSearchParams(window.location.search);
@@ -83,9 +87,6 @@
       function copy(key, w, h) {
         const tag = '<img class="load-exif" src="https://{{ $origin }}/' + key + '" width="' + w + '" height="' + h + '" loading="lazy">';
         navigator.clipboard.writeText(tag);
-        // Since buttons are dynamically generated, we can't rely on a fixed ID.
-        // The checkmark will not be displayed on the button after copying.
-        // This functionality will be removed in a later task.
       }
 
       const privateModeCheckbox = document.getElementById('privateModeCheckbox');
@@ -94,7 +95,6 @@
       }
       privateModeCheckbox.addEventListener('change', function() {
         const currentUrl = new URL(window.location.href);
-        // Remove all existing query parameters
         currentUrl.pathname = '/cameraroll/';
         currentUrl.search = '';
         if (this.checked) {
@@ -103,7 +103,7 @@
         window.location.href = currentUrl.toString();
       });
 
-      const thumbnailsData = [
+      const initialThumbnailsData = [
         {{ range $i, $thumb := .Thumbnails }}
           {{ if or (and $isPrivate $thumb.Private) (and (not $isPrivate) (not $thumb.Private)) }}
             {
@@ -116,10 +116,6 @@
           {{ end }}
         {{ end }}
       ];
-      // Remove the trailing comma if any
-      if (thumbnailsData.length > 0 && thumbnailsData[thumbnailsData.length - 1].id === "") {
-        thumbnailsData.pop();
-      }
 
       function groupThumbnailsByMonth(thumbnails) {
         return thumbnails.reduce((groups, thumb) => {
@@ -141,91 +137,135 @@
           return groups;
         }, {});
       }
-
-      function sortGroupedThumbnails(groupedThumbnails) {
-        const sortedKeys = Object.keys(groupedThumbnails).sort((a, b) => {
-          if (a === "Undefined") return 1;
-          if (b === "Undefined") return -1;
-          return b.localeCompare(a); // Sort months in descending order (newest first)
+      
+      async function renderThumbnails(thumbnails) {
+        const grouped = groupThumbnailsByMonth(thumbnails);
+        const sortedKeys = Object.keys(grouped).sort((a, b) => {
+            if (a === "Undefined") return 1;
+            if (b === "Undefined") return -1;
+            return b.localeCompare(a);
         });
 
-        const sortedGroups = {};
-        sortedKeys.forEach(key => {
-          sortedGroups[key] = groupedThumbnails[key];
-        });
-        return sortedGroups;
+        for (const month of sortedKeys) {
+            if (month !== lastMonth) {
+                const header = document.createElement('h2');
+                header.classList.add('month-header');
+                let date, year;
+                if (month !== 'Undefined') {
+                    const [yearStr, monthStr] = month.split('-');
+                    date = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1);
+                    year = yearStr;
+                } else {
+                    date = null;
+                    year = '';
+                }
+                const monthName = date ? date.toLocaleString('en-US', { month: 'long' }) : 'Undefined';
+                header.textContent = `${monthName}, ${year}`;
+                camerarollGrid.appendChild(header);
+                lastMonth = month;
+            }
+
+            for (const thumb of grouped[month]) {
+                const thumbnailBox = document.createElement('div');
+                thumbnailBox.classList.add('thumbnailBox');
+                thumbnailBox.id = thumb.timestamp;
+                thumbnailBox.dataset.timestamp = thumb.timestamp;
+
+                const link = document.createElement('a');
+                link.href = `https://{{ $viewer }}/image/${thumb.id}`;
+
+                const img = document.createElement('img');
+                img.dataset.src = `https://{{ $origin }}/thumbnail/${thumb.id}`;
+                img.width = 133;
+                img.height = 133;
+                img.classList.add('thumbnailImage');
+                img.dataset.private = thumb.private;
+                img.loading = 'lazy';
+
+                link.appendChild(img);
+                thumbnailBox.appendChild(link);
+
+                if (!thumb.private) {
+                    const copyButton = document.createElement('button');
+                    copyButton.textContent = '📋';
+                    copyButton.onclick = () => copy(thumb.id, thumb.width, thumb.height);
+                    thumbnailBox.appendChild(copyButton);
+                }
+                camerarollGrid.appendChild(thumbnailBox);
+            }
+        }
+        await loadVisibleImages();
       }
 
-      document.addEventListener('DOMContentLoaded', async function() {
-        const camerarollGrid = document.getElementById('cameraroll-grid');
-        if (!camerarollGrid) return;
-
-        const grouped = groupThumbnailsByMonth(thumbnailsData);
-        const sorted = sortGroupedThumbnails(grouped);
-
-        for (const month in sorted) {
-          const header = document.createElement('h2');
-          header.classList.add('month-header');
-
-          let date, year;
-          if (month !== 'Undefined') {
-            const [yearStr, monthStr] = month.split('-');
-            date = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1);
-            year = yearStr;
-          } else {
-            date = null;
-            year = '';
-          }
-
-          const monthName = date ? date.toLocaleString('en-US', { month: 'long' }) : 'Undefined';
-          header.textContent = `${monthName}, ${year}`;
-          camerarollGrid.appendChild(header);
-
-          for (const thumb of sorted[month]) {
-            const thumbnailBox = document.createElement('div');
-            thumbnailBox.classList.add('thumbnailBox');
-            thumbnailBox.id = thumb.timestamp;
-            thumbnailBox.dataset.timestamp = thumb.timestamp;
-
-            const link = document.createElement('a');
-            link.href = `https://{{ $viewer }}/image/${thumb.id}`;
-
-            const img = document.createElement('img');
-            img.dataset.src = `https://{{ $origin }}/thumbnail/${thumb.id}`;
-            img.width = 133;
-            img.height = 133;
-            img.classList.add('thumbnailImage');
-            img.dataset.private = thumb.private;
-
-            link.appendChild(img);
-            thumbnailBox.appendChild(link);
-
-            if (!thumb.private) {
-              const copyButton = document.createElement('button');
-              copyButton.textContent = '📋';
-              copyButton.onclick = () => copy(thumb.id, thumb.width, thumb.height);
-              thumbnailBox.appendChild(copyButton);
-            }
-            camerarollGrid.appendChild(thumbnailBox);
-          }
-        }
-
-        // Load images after they are added to the DOM
-        const images = document.querySelectorAll('img.thumbnailImage');
-        if (!isPrivate) {
-          images.forEach(img => {
-            img.src = img.dataset.src;
-          });
-        } else {
+      async function loadVisibleImages() {
+          const images = document.querySelectorAll('img.thumbnailImage:not([src])');
+          const imagePromises = [];
           for (const img of images) {
-            const url = new URL(img.dataset.src);
-            const key = url.pathname; // Keep leading slash
-            const token = await generateToken(key, salt);
-            const imageUrl = new URL(img.dataset.src);
-            imageUrl.searchParams.set('token', token);
-            img.src = imageUrl.toString();
+              if (isPrivate) {
+                  const url = new URL(img.dataset.src);
+                  const key = url.pathname;
+                  const tokenPromise = generateToken(key, salt).then(token => {
+                      const imageUrl = new URL(img.dataset.src);
+                      imageUrl.searchParams.set('token', token);
+                      img.src = imageUrl.toString();
+                  });
+                  imagePromises.push(tokenPromise);
+              } else {
+                  img.src = img.dataset.src;
+              }
+          }
+          await Promise.all(imagePromises);
+      }
+
+      async function fetchMoreImages() {
+        if (isLoading || !lastEvaluatedKey) return;
+
+        isLoading = true;
+        loader.style.display = 'block';
+
+        try {
+          const apiUrl = new URL(window.location.href);
+          apiUrl.search = ''; // Clear existing params
+          apiUrl.searchParams.set('last_evaluated_key', lastEvaluatedKey);
+          if (isPrivate) {
+            apiUrl.searchParams.set('private', 'true');
+          }
+
+          const response = await fetch(apiUrl);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+
+          const filteredThumbnails = data.thumbnails.filter(thumb => {
+            return isPrivate ? thumb.private : !thumb.private;
+          });
+
+          await renderThumbnails(filteredThumbnails);
+          
+          lastEvaluatedKey = data.last_evaluated_key;
+          if (!lastEvaluatedKey) {
+            loader.textContent = 'No more images.';
+          }
+        } catch (error) {
+          console.error('Failed to fetch more images:', error);
+          loader.textContent = 'Failed to load images. Please try again later.';
+        } finally {
+          isLoading = false;
+          if (lastEvaluatedKey) {
+            loader.style.display = 'none';
           }
         }
+      }
+
+      window.addEventListener('scroll', () => {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+          fetchMoreImages();
+        }
+      });
+
+      document.addEventListener('DOMContentLoaded', async function() {
+        await renderThumbnails(initialThumbnailsData);
       });
     </script>
 
