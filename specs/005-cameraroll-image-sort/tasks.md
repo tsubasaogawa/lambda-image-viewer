@@ -27,7 +27,7 @@
 ## Phase 3: Polish & Cross-Cutting Concerns
 
 - [X] T008 `serverless.yml` を確認し、`GET /cameraroll` エンドポイントの定義が正しいことを確認する
-- [ ] T009 `serverless deploy` を実行して変更をAWSにデプロイし、実際にエンドポイントを叩いて動作確認を行う
+- [X] T009 `serverless deploy` を実行して変更をAWSにデプロイし、実際にエンドポイントを叩いて動作確認を行う
 
 ## Dependencies
 
