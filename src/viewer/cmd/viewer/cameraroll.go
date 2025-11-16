@@ -1,180 +1,83 @@
 package main
 
 import (
-	"bytes"
-	"compress/gzip"
-	_ "embed"
 	"encoding/base64"
-	"fmt"
-	"html/template"
-	"io"
+	"encoding/json"
 	"log"
-	"net/url"
-	"os"
-	"strings"
+	"strconv"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/guregu/dynamo"
 	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
 )
 
 const (
-	MAX_THUMBNAIL_PER_PAGE = 200
+	DEFAULT_THUMBNAIL_PER_PAGE = 50
 )
 
-var (
-	//go:embed templates/camera_roll.html.tmpl
-	crTmpl string
-)
-
-type CameraRollData struct {
-	Thumbnails          *[]model.Thumbnail
-	OriginDomain        string
-	ViewerDomain        string
-	LastKey             string
-	PrevKeys            []string
-	NextLink            string
-	PrevLink            string
-	IsPrivate           bool
-	SaltForPrivateImage string
+type CameraRollResponse struct {
+	Thumbnails       []model.Thumbnail `json:"thumbnails"`
+	LastEvaluatedKey string            `json:"last_evaluated_key"`
 }
 
 type DB interface {
 	ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]model.Thumbnail, dynamo.PagingKey, error)
-	GetMetadata(id string) (*model.Metadata, error)
 }
 
-func generateCamerarollHtml(db DB, currentScanKey dynamo.PagingKey, prevKeys []string, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
-	thumbs, lk, err := db.ListThumbnails(MAX_THUMBNAIL_PER_PAGE, currentScanKey)
-	if err != nil {
-		log.Fatal(err)
+func CameraRollHandler(db DB, lastEvaluatedKey string, limitStr string) (events.LambdaFunctionURLResponse, error) {
+	limit, err := strconv.ParseInt(limitStr, 10, 64)
+	if err != nil || limit == 0 {
+		limit = DEFAULT_THUMBNAIL_PER_PAGE
 	}
-	log.Printf("lastEvaluatedKey = %+v\n", lk)
 
-	// Get metadata
-	for i, thumb := range *thumbs {
-		meta, err := db.GetMetadata(thumb.Id)
+	var scanKey dynamo.PagingKey
+	if lastEvaluatedKey != "" {
+		decodedKey, err := base64.URLEncoding.DecodeString(lastEvaluatedKey)
 		if err != nil {
-			log.Printf("Failed to get metadata for %s: %v", thumb.Id, err)
-			continue
+			return responseJson("Invalid last_evaluated_key", 400, Headers{}), err
 		}
-		(*thumbs)[i].Width = meta.Width
-		(*thumbs)[i].Height = meta.Height
+		var keyMap map[string]*dynamodb.AttributeValue
+		if err := json.Unmarshal(decodedKey, &keyMap); err != nil {
+			return responseJson("Invalid last_evaluated_key format", 400, Headers{}), err
+		}
+		scanKey = keyMap
 	}
 
-	cr, err := template.New("cameraroll").Parse(crTmpl)
+	thumbs, lk, err := db.ListThumbnails(limit, scanKey)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Failed to list thumbnails: %v", err)
+		return responseJson("Internal server error", 500, Headers{}), err
 	}
 
-	w := new(strings.Builder)
-	// Generate NextLink
-	nextLink := ""
+	var nextKey string
 	if len(lk) > 0 {
-		newPrevKeys := make([]string, len(prevKeys))
-		copy(newPrevKeys, prevKeys)
-		currentKeyStr := generateLastEvaluatedKeyQueryString(currentScanKey)
-		if currentKeyStr != "" {
-			newPrevKeys = append(newPrevKeys, currentKeyStr)
-		}
-		compressedPrevKeys, err := compressPrevKeys(newPrevKeys)
+		lkBytes, err := json.Marshal(lk)
 		if err != nil {
-			log.Printf("Failed to compress prevKeys for nextLink: %v", err)
-			// Fallback to uncompressed or handle error appropriately
-			compressedPrevKeys = strings.Join(newPrevKeys, ",")
+			log.Printf("Failed to marshal last key: %v", err)
+			return responseJson("Internal server error", 500, Headers{}), err
 		}
-		nextLink = fmt.Sprintf("/cameraroll/%s?prevKeys=%s", generateLastEvaluatedKeyQueryString(lk), url.QueryEscape(compressedPrevKeys))
-		if isPrivate {
-			nextLink += "&private=true"
-		}
+		nextKey = base64.URLEncoding.EncodeToString(lkBytes)
 	}
 
-	// Generate PrevLink
-	prevLink := ""
-	if len(prevKeys) > 0 {
-		prevKeyToNavigate := prevKeys[len(prevKeys)-1]  // Get the last key from the history
-		remainingPrevKeys := prevKeys[:len(prevKeys)-1] // Remove the last key from the history
-
-		compressedRemainingPrevKeys, err := compressPrevKeys(remainingPrevKeys)
-		if err != nil {
-			log.Printf("Failed to compress remainingPrevKeys for prevLink: %v", err)
-			// Fallback to uncompressed or handle error appropriately
-			compressedRemainingPrevKeys = strings.Join(remainingPrevKeys, ",")
-		}
-		prevLink = fmt.Sprintf("/cameraroll/%s?prevKeys=%s", prevKeyToNavigate, url.QueryEscape(compressedRemainingPrevKeys))
-		if isPrivate {
-			prevLink += "&private=true"
-		}
-	} else if len(prevKeys) == 0 && len(currentScanKey) > 0 {
-		prevLink = "/cameraroll/"
-		if isPrivate {
-			prevLink += "?private=true"
-		}
+	// `thumbs`がnilの場合に空のスライスを割り当てる
+	var thumbnailsToShow []model.Thumbnail
+	if thumbs != nil {
+		thumbnailsToShow = *thumbs
+	} else {
+		thumbnailsToShow = []model.Thumbnail{}
 	}
 
-	if err = cr.Execute(w, CameraRollData{
-		Thumbnails:          thumbs,
-		OriginDomain:        os.Getenv("ORIGIN_DOMAIN"),
-		ViewerDomain:        os.Getenv("VIEWER_DOMAIN"),
-		LastKey:             generateLastEvaluatedKeyQueryString(lk),
-		PrevKeys:            prevKeys, // Pass the prevKeys slice to the template
-		NextLink:            nextLink,
-		PrevLink:            prevLink,
-		IsPrivate:           isPrivate,
-		SaltForPrivateImage: os.Getenv("SALT_FOR_PRIVATE_IMAGE"),
-	}); err != nil {
-		return responseHtml("", 500, Headers{}), err
+	res := CameraRollResponse{
+		Thumbnails:       thumbnailsToShow,
+		LastEvaluatedKey: nextKey,
 	}
 
-	return responseHtml(w.String(), 200, Headers{"Cache-Control": "private"}), nil
-}
-
-func generateLastEvaluatedKeyQueryString(lk dynamo.PagingKey) string {
-	if len(lk) == 0 {
-		return ""
-	}
-
-	return fmt.Sprintf(
-		"%s/%s",
-		base64.URLEncoding.EncodeToString([]byte(*lk["Id"].S)),
-		base64.URLEncoding.EncodeToString([]byte(*lk["Timestamp"].N)),
-	)
-}
-
-// compressPrevKeys compresses the slice of previous keys into a base64 encoded string.
-func compressPrevKeys(prevKeys []string) (string, error) {
-	var b bytes.Buffer
-	gz := gzip.NewWriter(&b)
-	_, err := gz.Write([]byte(strings.Join(prevKeys, ",")))
+	resBody, err := json.Marshal(res)
 	if err != nil {
-		return "", fmt.Errorf("failed to write to gzip writer: %w", err)
-	}
-	if err := gz.Close(); err != nil {
-		return "", fmt.Errorf("failed to close gzip writer: %w", err)
-	}
-	return base64.URLEncoding.EncodeToString(b.Bytes()), nil
-}
-
-// decompressPrevKeys decompresses a base64 encoded string into a slice of previous keys.
-func decompressPrevKeys(compressed string) ([]string, error) {
-	if compressed == "" {
-		return []string{}, nil
-	}
-	data, err := base64.URLEncoding.DecodeString(compressed)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode base64 string: %w", err)
+		log.Printf("Failed to marshal response: %v", err)
+		return responseJson("Internal server error", 500, Headers{}), err
 	}
 
-	b := bytes.NewReader(data)
-	gz, err := gzip.NewReader(b)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
-	}
-	defer gz.Close()
-
-	decompressed, err := io.ReadAll(gz)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read from gzip reader: %w", err)
-	}
-	return strings.Split(string(decompressed), ","), nil
+	return responseJson(string(resBody), 200, Headers{"Cache-Control": "private"}), nil
 }

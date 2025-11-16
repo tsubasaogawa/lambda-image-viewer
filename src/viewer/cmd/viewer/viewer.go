@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"log"
 	"maps"
@@ -10,20 +9,15 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/guregu/dynamo"
 	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
 )
 
 type Headers map[string]string
 
 var (
-	imageGenerator      ImageGenerator      = &DefaultImageGenerator{}
-	metadataGenerator   MetadataGenerator   = &DefaultMetadataGenerator{}
-	camerarollGenerator CamerarollGenerator = &DefaultCamerarollGenerator{
-		DB: model.New(),
-	}
+	db              DB = model.New()
+	imageGenerator     = &DefaultImageGenerator{}
+	metadataGenerator  = &DefaultMetadataGenerator{}
 )
 
 func main() {
@@ -32,13 +26,17 @@ func main() {
 
 func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
 	p := strings.SplitN(strings.TrimPrefix(r.RawPath, "/"), "/", 2)
-	if p == nil || len(p) < 2 {
+	// Allow empty key for cameraroll
+	if p == nil || len(p) < 1 {
 		msg := "path parsing error. path=" + r.RawPath
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
 	}
 
 	route := p[0]
-	key := p[1]
+	var key string
+	if len(p) > 1 {
+		key = p[1]
+	}
 	log.Printf("route=%s, key=%s\n", route, key)
 
 	switch route {
@@ -50,35 +48,11 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 		q, err := url.ParseQuery(r.RawQueryString)
 		if err != nil {
 			msg := "query parsing error. query=" + r.RawQueryString
-			return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
+			return responseJson(msg, 500, Headers{}), fmt.Errorf(msg)
 		}
-		isPrivate := q.Get("private") == "true"
-
-		var currentScanKey dynamo.PagingKey
-		var prevKeys []string
-		prevKeysParam := q.Get("prevKeys")
-		if prevKeysParam != "" {
-			var err error
-			prevKeys, err = camerarollGenerator.DecompressPrevKeys(prevKeysParam)
-			if err != nil {
-				log.Printf("Failed to decompress prevKeys: %v", err)
-				msg := fmt.Sprintf("failed to decompress prevKeys: %v", err)
-				return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
-			}
-		}
-
-		// Determine the currentScanKey based on the 'key' path parameter
-		if key != "" {
-			parts := strings.SplitN(key, "/", 2)
-			id, _ := base64.URLEncoding.DecodeString(parts[0])
-			ts, _ := base64.URLEncoding.DecodeString(parts[1])
-			currentScanKey = dynamo.PagingKey{
-				"Id":        &dynamodb.AttributeValue{S: aws.String(string(id))},
-				"Timestamp": &dynamodb.AttributeValue{N: aws.String(string(ts))},
-			}
-		}
-
-		return camerarollGenerator.GenerateCamerarollHtml(currentScanKey, prevKeys, isPrivate)
+		lastEvaluatedKey := q.Get("last_evaluated_key")
+		limit := q.Get("limit")
+		return CameraRollHandler(db, lastEvaluatedKey, limit)
 	default:
 		msg := "no route error"
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)

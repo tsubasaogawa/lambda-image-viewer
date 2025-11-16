@@ -32,6 +32,6 @@ func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]Thumbnai
 		thumbs[i].Private = strings.Contains(thumbs[i].Id, "/private/")
 	}
 
-	sort.Slice(thumbs, func(i, j int) bool { return thumbs[i].Timestamp < thumbs[j].Timestamp })
+	sort.Slice(thumbs, func(i, j int) bool { return thumbs[i].Timestamp > thumbs[j].Timestamp })
 	return &thumbs, lastKey, nil
 }
