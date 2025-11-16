@@ -40,12 +40,12 @@ type CameraRollResponse struct {
 }
 
 type DB interface {
-	ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]model.Thumbnail, dynamo.PagingKey, error)
+	ListThumbnails(max int64, scanKey dynamo.PagingKey, isPrivate bool) (*[]model.Thumbnail, dynamo.PagingKey, error)
 }
 
 // generateCameraRollHtml は、カメラロールの初期表示用のHTMLを生成します。
 func generateCameraRollHtml(db DB, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
-	thumbs, lk, err := db.ListThumbnails(DEFAULT_THUMBNAIL_PER_PAGE, nil)
+	thumbs, lk, err := db.ListThumbnails(DEFAULT_THUMBNAIL_PER_PAGE, nil, isPrivate)
 	if err != nil {
 		log.Printf("Failed to list thumbnails for HTML: %v", err)
 		return responseHtml("Internal server error", 500, Headers{}), err
@@ -86,7 +86,7 @@ func generateCameraRollHtml(db DB, isPrivate bool) (events.LambdaFunctionURLResp
 }
 
 // CameraRollHandler は、ページネーション用のJSON APIリクエストを処理します。
-func CameraRollHandler(db DB, lastEvaluatedKey string, limitStr string) (events.LambdaFunctionURLResponse, error) {
+func CameraRollHandler(db DB, lastEvaluatedKey string, limitStr string, isPrivate bool) (events.LambdaFunctionURLResponse, error) {
 	limit, err := strconv.ParseInt(limitStr, 10, 64)
 	if err != nil || limit == 0 {
 		limit = DEFAULT_THUMBNAIL_PER_PAGE
@@ -105,7 +105,7 @@ func CameraRollHandler(db DB, lastEvaluatedKey string, limitStr string) (events.
 		scanKey = keyMap
 	}
 
-	thumbs, lk, err := db.ListThumbnails(limit, scanKey)
+	thumbs, lk, err := db.ListThumbnails(limit, scanKey, isPrivate)
 	if err != nil {
 		log.Printf("Failed to list thumbnails for API: %v", err)
 		return responseJson("Internal server error", 500, Headers{}), err
