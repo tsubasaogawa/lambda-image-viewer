@@ -59,7 +59,7 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 
 		// If last_evaluated_key is present, it's an API call for the next page.
 		if lastEvaluatedKey != "" || limit != "" {
-			return CameraRollHandler(db, lastEvaluatedKey, limit)
+			return CameraRollHandler(db, lastEvaluatedKey, limit, isPrivate)
 		}
 
 		// Otherwise, it's a request for the initial HTML page.

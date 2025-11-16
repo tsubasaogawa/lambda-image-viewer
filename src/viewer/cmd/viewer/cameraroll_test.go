@@ -20,7 +20,7 @@ type mockDB struct {
 	errToReturn     error
 }
 
-func (m *mockDB) ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]model.Thumbnail, dynamo.PagingKey, error) {
+func (m *mockDB) ListThumbnails(max int64, scanKey dynamo.PagingKey, isPrivate bool) (*[]model.Thumbnail, dynamo.PagingKey, error) {
 	return m.thumbsToReturn, m.lastKeyToReturn, m.errToReturn
 }
 
@@ -47,7 +47,7 @@ func TestCameraRollHandler(t *testing.T) {
 	}
 
 	// テストケースの実行
-	resp, err := CameraRollHandler(db, "", "3")
+	resp, err := CameraRollHandler(db, "", "3", false)
 	if err != nil {
 		t.Fatalf("CameraRollHandler returned an error: %v", err)
 	}
@@ -75,12 +75,78 @@ func TestCameraRollHandler_DBError(t *testing.T) {
 		errToReturn: errors.New("dynamodb error"),
 	}
 
-	resp, err := CameraRollHandler(db, "", "10")
+	resp, err := CameraRollHandler(db, "", "10", false)
 	if err != nil {
 		// エラーが返されること自体は正常な挙動
 	}
 
 	if resp.StatusCode != 500 {
 		t.Errorf("Expected status code 500 for DB error, got %d", resp.StatusCode)
+	}
+}
+
+func TestCameraRollHandler_PrivateMode(t *testing.T) {
+	// Test that isPrivate flag is properly passed through
+	privateThumbs := []model.Thumbnail{
+		{Id: "private/img1.jpg", Timestamp: 100, Private: true},
+		{Id: "private/img2.jpg", Timestamp: 200, Private: true},
+	}
+
+	db := &mockDB{
+		thumbsToReturn:  &privateThumbs,
+		lastKeyToReturn: nil,
+		errToReturn:     nil,
+	}
+
+	// Test with private mode enabled
+	resp, err := CameraRollHandler(db, "", "10", true)
+	if err != nil {
+		t.Fatalf("CameraRollHandler returned an error: %v", err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Errorf("Expected status code 200, got %d", resp.StatusCode)
+	}
+
+	var body CameraRollResponse
+	if err := json.Unmarshal([]byte(resp.Body), &body); err != nil {
+		t.Fatalf("Failed to unmarshal response body: %v", err)
+	}
+
+	if !reflect.DeepEqual(body.Thumbnails, privateThumbs) {
+		t.Errorf("Private thumbnails not returned correctly. Got %+v, want %+v", body.Thumbnails, privateThumbs)
+	}
+}
+
+func TestCameraRollHandler_PublicMode(t *testing.T) {
+	// Test that public mode works correctly
+	publicThumbs := []model.Thumbnail{
+		{Id: "public/img1.jpg", Timestamp: 100, Private: false},
+		{Id: "public/img2.jpg", Timestamp: 200, Private: false},
+	}
+
+	db := &mockDB{
+		thumbsToReturn:  &publicThumbs,
+		lastKeyToReturn: nil,
+		errToReturn:     nil,
+	}
+
+	// Test with private mode disabled
+	resp, err := CameraRollHandler(db, "", "10", false)
+	if err != nil {
+		t.Fatalf("CameraRollHandler returned an error: %v", err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Errorf("Expected status code 200, got %d", resp.StatusCode)
+	}
+
+	var body CameraRollResponse
+	if err := json.Unmarshal([]byte(resp.Body), &body); err != nil {
+		t.Fatalf("Failed to unmarshal response body: %v", err)
+	}
+
+	if !reflect.DeepEqual(body.Thumbnails, publicThumbs) {
+		t.Errorf("Public thumbnails not returned correctly. Got %+v, want %+v", body.Thumbnails, publicThumbs)
 	}
 }

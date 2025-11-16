@@ -15,12 +15,19 @@ type Thumbnail struct {
 	Height    int32  `json:"height"`
 }
 
-func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey) (*[]Thumbnail, dynamo.PagingKey, error) {
+func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey, isPrivate bool) (*[]Thumbnail, dynamo.PagingKey, error) {
 	var thumbs []Thumbnail
 
 	scan := t.Scan().Index("Timestamp").SearchLimit(max)
 	if scanKey != nil {
 		scan = scan.StartFrom(scanKey)
+	}
+
+	// Apply filter based on isPrivate flag
+	if isPrivate {
+		scan = scan.Filter("contains($, ?)", "Id", "/private/")
+	} else {
+		scan = scan.Filter("not contains($, ?)", "Id", "/private/")
 	}
 
 	lastKey, err := scan.AllWithLastEvaluatedKey(&thumbs)
