@@ -15,9 +15,9 @@ import (
 type Headers map[string]string
 
 var (
-	db                DB = model.New()
-	imageGenerator       = &DefaultImageGenerator{}
-	metadataGenerator    = &DefaultMetadataGenerator{}
+	db                DB                = model.New()
+	imageGenerator    ImageGenerator    = &DefaultImageGenerator{}
+	metadataGenerator MetadataGenerator = &DefaultMetadataGenerator{}
 )
 
 func main() {
@@ -25,9 +25,11 @@ func main() {
 }
 
 func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
-	p := strings.SplitN(strings.TrimPrefix(r.RawPath, "/"), "/", 2)
-	// Allow empty key for cameraroll
-	if p == nil || len(p) < 1 {
+	trimmedPath := strings.TrimPrefix(r.RawPath, "/")
+	p := strings.SplitN(trimmedPath, "/", 2)
+
+	// Handle cases like "/" or ""
+	if len(p) < 1 || p[0] == "" {
 		msg := "path parsing error. path=" + r.RawPath
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
 	}

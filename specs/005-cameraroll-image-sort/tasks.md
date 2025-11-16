@@ -21,8 +21,8 @@
 
 ### Testing Tasks (TDD)
 
-- [ ] T006 [P] [US1] `src/viewer/internal/model/thumbnail_test.go` に、`ListThumbnails` が結果を降順で返すことを検証するユニットテストを追加する
-- [ ] T007 [P] [US1] `src/viewer/cmd/viewer/cameraroll_test.go` に、`CameraRollHandler` がページネーションのパラメータを正しく処理し、レスポンスに `last_evaluated_key` を含めることを検証するユニットテストを追加する
+- [X] T006 [P] [US1] `src/viewer/internal/model/thumbnail_test.go` に、`ListThumbnails` が結果を降順で返すことを検証するユニットテストを追加する
+- [X] T007 [P] [US1] `src/viewer/cmd/viewer/cameraroll_test.go` に、`CameraRollHandler` がページネーションのパラメータを正しく処理し、レスポンスに `last_evaluated_key` を含めることを検証するユニットテストを追加する
 
 ## Phase 3: Polish & Cross-Cutting Concerns
 
