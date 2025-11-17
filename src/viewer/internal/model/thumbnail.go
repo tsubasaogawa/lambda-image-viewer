@@ -17,19 +17,23 @@ type Thumbnail struct {
 func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey, isPrivate bool) (*[]Thumbnail, dynamo.PagingKey, error) {
 	var thumbs []Thumbnail
 
-	scan := t.Scan().Index("Timestamp").SearchLimit(max)
+	// NOTE: GSI の HashKey が Timestamp のみのため、Query を使ってもソート順が保証されない。
+	//       このため、cameraroll.go 側でソートを行う。
+	//       Timestamp を GSI の SortKey とし、HashKey を固定値にすることで、
+	//       Query だけでソートまで完結させることができるが、今回は既存の GSI を利用する。
+	query := t.Scan().Index("Timestamp").SearchLimit(max)
 	if scanKey != nil {
-		scan = scan.StartFrom(scanKey)
+		query = query.StartFrom(scanKey)
 	}
 
 	// Apply filter based on isPrivate flag
 	if isPrivate {
-		scan = scan.Filter("contains($, ?)", "Id", "/private/")
+		query = query.Filter("contains($, ?)", "Id", "/private/")
 	} else {
-		scan = scan.Filter("not contains($, ?)", "Id", "/private/")
+		query = query.Filter("not contains($, ?)", "Id", "/private/")
 	}
 
-	lastKey, err := scan.AllWithLastEvaluatedKey(&thumbs)
+	lastKey, err := query.AllWithLastEvaluatedKey(&thumbs)
 	if err != nil {
 		return nil, nil, err
 	}
