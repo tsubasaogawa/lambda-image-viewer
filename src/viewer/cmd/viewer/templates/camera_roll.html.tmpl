@@ -71,9 +71,6 @@
     {{ $origin := .OriginDomain }}
     {{ $viewer := .ViewerDomain }}
     {{ $isPrivate := .IsPrivate }}
-    <div id="cameraroll-grid">
-    </div>
-    <div id="loader" style="display: none;">Loading...</div>
     <p>
       <a href="/cameraroll/">Home</a>
     </p>
@@ -83,6 +80,9 @@
     <p id="copyinfo">
       Copy the HTML tag to clipboard by clicking the 📋 button.
     </p>
+    <div id="cameraroll-grid">
+    </div>
+    <div id="loader" style="display: none;">Loading...</div>
     <script src="https://{{ $origin }}/assets/generate_access_token.js"></script>
     <script>
       const salt = "{{ .SaltForPrivateImage }}";
