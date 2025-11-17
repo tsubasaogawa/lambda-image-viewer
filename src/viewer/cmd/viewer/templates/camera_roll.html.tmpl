@@ -5,29 +5,38 @@
     <title>Camera Roll</title>
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
     <style media="screen">
+      /* General Body Styles */
       body {
         margin: 0;
         padding: 80px;
         font-family: 'Open Sans', sans-serif;
       }
+
+      /* Thumbnail Box Styles */
       .thumbnailBox {
         position: relative;
       }
+
       .thumbnailBox button {
         position: absolute;
         right: 0;
         top: 0;
-        display: none;
+        display: none; /* Hidden by default */
       }
+
       .thumbnailBox:hover button {
-        display: block;
+        display: block; /* Visible on hover */
       }
+
+      /* Cameraroll Grid Styles */
       #cameraroll-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Adjust as needed */
-        gap: 5px; /* Adjust as needed */
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Default column size */
+        gap: 5px;
         padding: 10px;
       }
+
+      /* Responsive adjustments for cameraroll grid */
       @media (min-width: 600px) {
         #cameraroll-grid {
           grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -39,6 +48,8 @@
           grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         }
       }
+
+      /* Month Header Styles */
       h2.month-header {
         grid-column: 1 / -1; /* Span across all columns */
         text-align: left;
@@ -46,10 +57,12 @@
         color: #333;
         font-size: 1.8em;
       }
+
+      /* Loader Styles */
       #loader {
         text-align: center;
         padding: 20px;
-        grid-column: 1 / -1;
+        grid-column: 1 / -1; /* Span across all columns */
       }
     </style>
   </head>
@@ -75,6 +88,9 @@
       const salt = "{{ .SaltForPrivateImage }}";
       let lastEvaluatedKey = "{{ .LastKey }}";
       let isLoading = false;
+      const THUMBNAIL_WIDTH = 133;
+      const THUMBNAIL_HEIGHT = 133;
+      const SCROLL_THRESHOLD = 500; // Pixels from the bottom to trigger loading
       const camerarollGrid = document.getElementById('cameraroll-grid');
       const loader = document.getElementById('loader');
       let lastMonth = "";
@@ -89,18 +105,21 @@
       }
 
       const privateModeCheckbox = document.getElementById('privateModeCheckbox');
-      if (isPrivate) {
-        privateModeCheckbox.checked = true;
-      }
-      privateModeCheckbox.addEventListener('change', function() {
-        const currentUrl = new URL(window.location.href);
-        currentUrl.pathname = '/cameraroll/';
-        currentUrl.search = '';
-        if (this.checked) {
-          currentUrl.searchParams.set('private', 'true');
+
+      function initializePrivateModeCheckbox() {
+        if (isPrivate) {
+          privateModeCheckbox.checked = true;
         }
-        window.location.href = currentUrl.toString();
-      });
+        privateModeCheckbox.addEventListener('change', function() {
+          const currentUrl = new URL(window.location.href);
+          currentUrl.pathname = '/cameraroll/';
+          currentUrl.search = '';
+          if (this.checked) {
+            currentUrl.searchParams.set('private', 'true');
+          }
+          window.location.href = currentUrl.toString();
+        });
+      }
 
       const initialThumbnailsData = [
         {{ range $i, $thumb := .Thumbnails }}
@@ -137,6 +156,40 @@
         }, {});
       }
       
+      function createThumbnailElement(thumb) {
+        const thumbnailBox = document.createElement('div');
+        thumbnailBox.classList.add('thumbnailBox');
+        thumbnailBox.id = thumb.timestamp;
+        thumbnailBox.dataset.timestamp = thumb.timestamp;
+
+        const link = document.createElement('a');
+        link.href = `https://{{ $viewer }}/image/${thumb.id}`;
+
+        const img = document.createElement('img');
+        img.dataset.src = `https://{{ $origin }}/thumbnail/${thumb.id}`;
+        img.width = THUMBNAIL_WIDTH;
+        img.height = THUMBNAIL_HEIGHT;
+        img.classList.add('thumbnailImage');
+        img.dataset.private = thumb.private;
+        img.loading = 'lazy';
+
+        link.appendChild(img);
+        thumbnailBox.appendChild(link);
+
+        if (!thumb.private) {
+          const copyButton = document.createElement('button');
+          copyButton.textContent = '📋';
+          copyButton.onclick = () => copy(thumb.id, thumb.width, thumb.height);
+          thumbnailBox.appendChild(copyButton);
+        }
+        return thumbnailBox;
+      }
+
+      function updateLoaderVisibility(visible, message = '') {
+        loader.style.display = visible ? 'block' : 'none';
+        loader.textContent = message || 'Loading...';
+      }
+      
       async function renderThumbnails(thumbnails) {
         const grouped = groupThumbnailsByMonth(thumbnails);
         const sortedKeys = Object.keys(grouped).sort((a, b) => {
@@ -165,32 +218,8 @@
             }
 
             for (const thumb of grouped[month]) {
-                const thumbnailBox = document.createElement('div');
-                thumbnailBox.classList.add('thumbnailBox');
-                thumbnailBox.id = thumb.timestamp;
-                thumbnailBox.dataset.timestamp = thumb.timestamp;
-
-                const link = document.createElement('a');
-                link.href = `https://{{ $viewer }}/image/${thumb.id}`;
-
-                const img = document.createElement('img');
-                img.dataset.src = `https://{{ $origin }}/thumbnail/${thumb.id}`;
-                img.width = 133;
-                img.height = 133;
-                img.classList.add('thumbnailImage');
-                img.dataset.private = thumb.private;
-                img.loading = 'lazy';
-
-                link.appendChild(img);
-                thumbnailBox.appendChild(link);
-
-                if (!thumb.private) {
-                    const copyButton = document.createElement('button');
-                    copyButton.textContent = '📋';
-                    copyButton.onclick = () => copy(thumb.id, thumb.width, thumb.height);
-                    thumbnailBox.appendChild(copyButton);
-                }
-                camerarollGrid.appendChild(thumbnailBox);
+                const thumbnailElement = createThumbnailElement(thumb);
+                camerarollGrid.appendChild(thumbnailElement);
             }
         }
         await loadVisibleImages();
@@ -220,7 +249,7 @@
         if (isLoading || !lastEvaluatedKey) return;
 
         isLoading = true;
-        loader.style.display = 'block';
+        updateLoaderVisibility(true);
 
         try {
           const apiUrl = new URL(window.location.href);
@@ -244,26 +273,27 @@
           
           lastEvaluatedKey = data.last_evaluated_key;
           if (!lastEvaluatedKey) {
-            loader.textContent = 'No more images.';
+            updateLoaderVisibility(true, 'No more images.');
           }
         } catch (error) {
           console.error('Failed to fetch more images:', error);
-          loader.textContent = 'Failed to load images. Please try again later.';
+          updateLoaderVisibility(true, 'Failed to load images. Please try again later.');
         } finally {
           isLoading = false;
           if (lastEvaluatedKey) {
-            loader.style.display = 'none';
+            updateLoaderVisibility(false);
           }
         }
       }
 
       window.addEventListener('scroll', () => {
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - SCROLL_THRESHOLD) {
           fetchMoreImages();
         }
       });
 
       document.addEventListener('DOMContentLoaded', async function() {
+        initializePrivateModeCheckbox();
         await renderThumbnails(initialThumbnailsData);
       });
     </script>
