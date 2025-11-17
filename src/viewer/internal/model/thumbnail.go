@@ -1,7 +1,6 @@
 package model
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/guregu/dynamo"
@@ -39,6 +38,5 @@ func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey, isPrivate bo
 		thumbs[i].Private = strings.Contains(thumbs[i].Id, "/private/")
 	}
 
-	sort.Slice(thumbs, func(i, j int) bool { return thumbs[i].Timestamp > thumbs[j].Timestamp })
 	return &thumbs, lastKey, nil
 }

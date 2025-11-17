@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -17,7 +18,7 @@ import (
 )
 
 const (
-	DEFAULT_THUMBNAIL_PER_PAGE = 500
+	DEFAULT_THUMBNAIL_PER_PAGE = 50
 )
 
 var (
@@ -49,6 +50,15 @@ func generateCameraRollHtml(db DB, isPrivate bool) (events.LambdaFunctionURLResp
 	if err != nil {
 		log.Printf("Failed to list thumbnails for HTML: %v", err)
 		return responseHtml("Internal server error", 500, Headers{}), err
+	}
+
+	if thumbs != nil {
+		sort.Slice(*thumbs, func(i, j int) bool {
+			if (*thumbs)[i].Timestamp != (*thumbs)[j].Timestamp {
+				return (*thumbs)[i].Timestamp > (*thumbs)[j].Timestamp
+			}
+			return (*thumbs)[i].Id > (*thumbs)[j].Id
+		})
 	}
 
 	var nextKey string
@@ -124,6 +134,12 @@ func CameraRollHandler(db DB, lastEvaluatedKey string, limitStr string, isPrivat
 	var thumbnailsToShow []model.Thumbnail
 	if thumbs != nil {
 		thumbnailsToShow = *thumbs
+		sort.Slice(thumbnailsToShow, func(i, j int) bool {
+			if thumbnailsToShow[i].Timestamp != thumbnailsToShow[j].Timestamp {
+				return thumbnailsToShow[i].Timestamp > thumbnailsToShow[j].Timestamp
+			}
+			return thumbnailsToShow[i].Id > thumbnailsToShow[j].Id
+		})
 	} else {
 		thumbnailsToShow = []model.Thumbnail{}
 	}
