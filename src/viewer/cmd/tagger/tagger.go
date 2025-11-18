@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -81,6 +82,7 @@ func Index(ctx context.Context, event events.S3Event) {
 		}
 
 		meta.Id = r.S3.Object.Key
+		meta.IsPrivate = strconv.FormatBool(strings.Contains(r.S3.Object.Key, "/private/"))
 		fmt.Printf("%#v", *meta)
 
 		if err := model.New().PutMetadata(meta); err != nil {

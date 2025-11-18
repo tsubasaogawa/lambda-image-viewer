@@ -13,9 +13,15 @@ resource "aws_dynamodb_table" "item" {
     type = "N"
   }
 
+  attribute {
+    name = "IsPrivate"
+    type = "S"
+  }
+
   global_secondary_index {
-    hash_key        = "Timestamp"
-    name            = "Timestamp"
-    projection_type = "KEYS_ONLY"
+    name            = "IsPrivate-Timestamp-index"
+    hash_key        = "IsPrivate"
+    range_key       = "Timestamp"
+    projection_type = "ALL"
   }
 }

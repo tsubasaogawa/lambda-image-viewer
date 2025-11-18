@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/guregu/dynamo"
@@ -12,25 +13,19 @@ type Thumbnail struct {
 	Private   bool   `json:"private"`
 	Width     int32  `json:"width"`
 	Height    int32  `json:"height"`
+	IsPrivate string `json:"is_private" dynamo:"IsPrivate"`
 }
 
 func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey, isPrivate bool) (*[]Thumbnail, dynamo.PagingKey, error) {
 	var thumbs []Thumbnail
 
-	// NOTE: GSI の HashKey が Timestamp のみのため、Query を使ってもソート順が保証されない。
-	//       このため、cameraroll.go 側でソートを行う。
-	//       Timestamp を GSI の SortKey とし、HashKey を固定値にすることで、
-	//       Query だけでソートまで完結させることができるが、今回は既存の GSI を利用する。
-	query := t.Scan().Index("Timestamp").SearchLimit(max)
+	query := t.Get("IsPrivate", strconv.FormatBool(isPrivate)).
+		Index("IsPrivate-Timestamp-index").
+		Order(dynamo.Descending).
+		SearchLimit(max)
+
 	if scanKey != nil {
 		query = query.StartFrom(scanKey)
-	}
-
-	// Apply filter based on isPrivate flag
-	if isPrivate {
-		query = query.Filter("contains($, ?)", "Id", "/private/")
-	} else {
-		query = query.Filter("not contains($, ?)", "Id", "/private/")
 	}
 
 	lastKey, err := query.AllWithLastEvaluatedKey(&thumbs)
