@@ -1,4 +1,4 @@
-# Feature Specification: カメラロールのページ네ーション修正
+# Feature Specification: カメラロールのページネーション修正
 
 **Feature Branch**: `006-fix-cameraroll-pagination`
 **Created**: 2025-11-17
