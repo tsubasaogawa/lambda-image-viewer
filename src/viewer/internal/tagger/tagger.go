@@ -1,4 +1,4 @@
-package main
+package tagger
 
 import (
 	"bytes"
@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	slambda "github.com/aws/aws-sdk-go/service/lambda"
@@ -25,10 +24,6 @@ import (
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/tiff"
 )
-
-func main() {
-	lambda.Start(Index)
-}
 
 func Index(ctx context.Context, event events.S3Event) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
@@ -40,7 +35,7 @@ func Index(ctx context.Context, event events.S3Event) {
 	// Otherwise, invoke thumbnail generator for the given event.
 	if len(event.Records) == 0 {
 		log.Println("event is empty. Fetching all objects from S3.")
-		r, err := listAllImageObjects(svc, os.Getenv("ORIGIN_DOMAIN"), "blog/IMG_") // TODO: prefix should be event input
+		r, err := ListAllImageObjects(svc, os.Getenv("ORIGIN_DOMAIN"), "blog/IMG_") // TODO: prefix should be event input
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -52,43 +47,50 @@ func Index(ctx context.Context, event events.S3Event) {
 	}
 
 	for _, r := range event.Records {
-		log.Printf("s3://%s/%s\n", r.S3.Bucket.Name, r.S3.Object.Key)
-		obj, err := svc.GetObject(&s3.GetObjectInput{
-			Bucket: aws.String(r.S3.Bucket.Name),
-			Key:    aws.String(r.S3.Object.Key),
-		})
-		if err != nil {
-			log.Printf("ERROR: could not get object %s/%s: %v", r.S3.Bucket.Name, r.S3.Object.Key, err)
-			continue
-		}
-		defer obj.Body.Close()
-
-		body, err := io.ReadAll(obj.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		exifReader := bytes.NewReader(body)
-		e, err := exif.Decode(exifReader)
-		if err != nil {
-			log.Println(err)
-			e = &exif.Exif{}
-		}
-
-		configReader := bytes.NewReader(body)
-		meta, err := FillMetadataByExif(e, configReader)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		meta.Id = r.S3.Object.Key
-		meta.IsPrivate = strconv.FormatBool(strings.Contains(r.S3.Object.Key, "/private/"))
-		fmt.Printf("%#v", *meta)
-
-		if err := model.New().PutMetadata(meta); err != nil {
-			log.Fatal(err)
+		if err := ProcessS3Object(svc, r.S3.Bucket.Name, r.S3.Object.Key); err != nil {
+			log.Printf("ERROR: failed to process object %s/%s: %v", r.S3.Bucket.Name, r.S3.Object.Key, err)
 		}
 	}
+}
+
+func ProcessS3Object(svc *s3.S3, bucket, key string) error {
+	log.Printf("s3://%s/%s\n", bucket, key)
+	obj, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return fmt.Errorf("could not get object %s/%s: %w", bucket, key, err)
+	}
+	defer obj.Body.Close()
+
+	body, err := io.ReadAll(obj.Body)
+	if err != nil {
+		return err
+	}
+
+	exifReader := bytes.NewReader(body)
+	e, err := exif.Decode(exifReader)
+	if err != nil {
+		log.Println(err)
+		e = &exif.Exif{}
+	}
+
+	configReader := bytes.NewReader(body)
+	meta, err := FillMetadataByExif(e, configReader)
+	if err != nil {
+		return err
+	}
+
+	meta.Id = key
+	meta.IsPrivate = strconv.FormatBool(strings.Contains(key, "/private/"))
+	fmt.Printf("%#v", *meta)
+
+	if err := model.New().PutMetadata(meta); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func FillMetadataByExif(e *exif.Exif, r io.Reader) (*model.Metadata, error) {
@@ -202,9 +204,9 @@ func invokeThumbnailGenerator(sess *session.Session, event events.S3Event) error
 	return nil
 }
 
-// listAllImageObjects retrieves all jpg objects from the specified S3 bucket and prefix.
+// ListAllImageObjects retrieves all jpg objects from the specified S3 bucket and prefix.
 // It paginates through the results from S3.
-func listAllImageObjects(svc *s3.S3, bucket, prefix string) ([]events.S3EventRecord, error) {
+func ListAllImageObjects(svc *s3.S3, bucket, prefix string) ([]events.S3EventRecord, error) {
 	var records []events.S3EventRecord
 	input := &s3.ListObjectsV2Input{
 		Bucket: aws.String(bucket),
