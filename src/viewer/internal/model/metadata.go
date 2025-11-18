@@ -17,6 +17,7 @@ type Metadata struct {
 	SS          string  `json:"shutter_speed"`
 	Width       int32   `json:"width"`
 	Height      int32   `json:"height"`
+	IsPrivate   string  `json:"is_private" dynamo:"IsPrivate"`
 }
 
 func (t *Table) GetMetadata(id string) (*Metadata, error) {

@@ -150,3 +150,36 @@ func TestCameraRollHandler_PublicMode(t *testing.T) {
 		t.Errorf("Public thumbnails not returned correctly. Got %+v, want %+v", body.Thumbnails, publicThumbs)
 	}
 }
+
+func TestCameraRollHandler_UnsortedData(t *testing.T) {
+	// Expected sorted thumbnail data (now directly from mock to simulate GSI)
+	sortedThumbs := []model.Thumbnail{
+		{Id: "img2.jpg", Timestamp: 300},
+		{Id: "img3.jpg", Timestamp: 200},
+		{Id: "img1.jpg", Timestamp: 100},
+	}
+
+	db := &mockDB{
+		thumbsToReturn:  &sortedThumbs,
+		lastKeyToReturn: nil,
+		errToReturn:     nil,
+	}
+
+	resp, err := CameraRollHandler(db, "", "10", false)
+	if err != nil {
+		t.Fatalf("CameraRollHandler returned an error: %v", err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Errorf("Expected status code 200, got %d", resp.StatusCode)
+	}
+
+	var body CameraRollResponse
+	if err := json.Unmarshal([]byte(resp.Body), &body); err != nil {
+		t.Fatalf("Failed to unmarshal response body: %v", err)
+	}
+
+	if !reflect.DeepEqual(body.Thumbnails, sortedThumbs) {
+		t.Errorf("Thumbnails not sorted correctly. Got %+v, want %+v", body.Thumbnails, sortedThumbs)
+	}
+}
