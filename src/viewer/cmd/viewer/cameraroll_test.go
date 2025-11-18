@@ -183,6 +183,3 @@ func TestCameraRollHandler_UnsortedData(t *testing.T) {
 		t.Errorf("Thumbnails not sorted correctly. Got %+v, want %+v", body.Thumbnails, sortedThumbs)
 	}
 }
-
-
-	
