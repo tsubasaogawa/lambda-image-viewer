@@ -25,10 +25,11 @@ route: `<Viewer Domain>/image/.../foo.jpg`
 
 route: `<Viewer Domain>/cameraroll/`
 
-![Screenshot](https://github.com/user-attachments/assets/fd366891-0974-4507-9f06-fcfd8045bb08)
+<img width="1299" height="992" alt="image" src="https://github.com/user-attachments/assets/eb065214-bbe1-4a2e-8f6a-e5ef5152291b" />
 
 - You can list all uploaded images.
 - Basic auth.
+- Private images (`/private/*.jpg`): only accessible from camera roll page.
 
 ## Structure
 
