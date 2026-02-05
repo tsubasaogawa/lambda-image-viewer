@@ -64,6 +64,73 @@
         padding: 20px;
         grid-column: 1 / -1; /* Span across all columns */
       }
+
+      /* Modal Styles */
+      #imageModal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        animation: fadeIn 0.3s;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      .modal-content {
+        position: relative;
+        margin: auto;
+        padding: 20px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90%;
+        top: 50%;
+        transform: translateY(-50%);
+        text-align: center;
+      }
+
+      .modal-content img {
+        max-width: 100%;
+        max-height: 70vh;
+        object-fit: contain;
+        margin-bottom: 20px;
+      }
+
+      .modal-close {
+        position: absolute;
+        top: 10px;
+        right: 25px;
+        color: #fff;
+        font-size: 35px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .modal-close:hover,
+      .modal-close:focus {
+        color: #bbb;
+      }
+
+      .modal-link-button {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+
+      .modal-link-button:hover {
+        background-color: #45a049;
+      }
     </style>
   </head>
   <body>
@@ -83,6 +150,16 @@
     <div id="cameraroll-grid">
     </div>
     <div id="loader" style="display: none;">Loading...</div>
+    
+    <!-- Image Modal -->
+    <div id="imageModal">
+      <span class="modal-close">&times;</span>
+      <div class="modal-content">
+        <img id="modalImage" src="" alt="Zoomed image">
+        <br>
+        <a id="modalViewerLink" href="#" class="modal-link-button" target="_blank">Open in Image Viewer</a>
+      </div>
+    </div>
     <script src="https://{{ $origin }}/assets/generate_access_token.js"></script>
     <script>
       const salt = "{{ .SaltForPrivateImage }}";
@@ -103,6 +180,53 @@
         const tag = '<img class="load-exif" src="https://{{ $origin }}/' + key + '" width="' + w + '" height="' + h + '" loading="lazy">';
         navigator.clipboard.writeText(tag);
       }
+
+      // Modal functions
+      const modal = document.getElementById('imageModal');
+      const modalImage = document.getElementById('modalImage');
+      const modalViewerLink = document.getElementById('modalViewerLink');
+      const modalClose = document.querySelector('.modal-close');
+
+      async function openModal(thumb) {
+        // Set the viewer link
+        modalViewerLink.href = `https://{{ $viewer }}/image/${thumb.id}`;
+        
+        // Set the image source (full size or original image)
+        let imageSrc = `https://{{ $origin }}/${thumb.id}`;
+        
+        // If private, generate token
+        if (isPrivate && thumb.private) {
+          const url = new URL(imageSrc);
+          const key = url.pathname;
+          const token = await generateToken(key, salt);
+          imageSrc += `?token=${token}`;
+        }
+        
+        modalImage.src = imageSrc;
+        modal.style.display = 'block';
+      }
+
+      function closeModal() {
+        modal.style.display = 'none';
+        modalImage.src = '';
+      }
+
+      // Close modal when clicking X button
+      modalClose.onclick = closeModal;
+
+      // Close modal when clicking outside the image
+      modal.onclick = function(event) {
+        if (event.target === modal) {
+          closeModal();
+        }
+      };
+
+      // Close modal when pressing ESC key
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && modal.style.display === 'block') {
+          closeModal();
+        }
+      });
 
       const privateModeCheckbox = document.getElementById('privateModeCheckbox');
 
@@ -162,8 +286,10 @@
         thumbnailBox.id = thumb.timestamp;
         thumbnailBox.dataset.timestamp = thumb.timestamp;
 
-        const link = document.createElement('a');
-        link.href = `https://{{ $viewer }}/image/${thumb.id}`;
+        // Instead of a link, make it clickable to open modal
+        const thumbnailClickable = document.createElement('div');
+        thumbnailClickable.style.cursor = 'pointer';
+        thumbnailClickable.onclick = () => openModal(thumb);
 
         const img = document.createElement('img');
         img.dataset.src = `https://{{ $origin }}/thumbnail/${thumb.id}`;
@@ -173,8 +299,8 @@
         img.dataset.private = thumb.private;
         img.loading = 'lazy';
 
-        link.appendChild(img);
-        thumbnailBox.appendChild(link);
+        thumbnailClickable.appendChild(img);
+        thumbnailBox.appendChild(thumbnailClickable);
 
         if (!thumb.private) {
           const copyButton = document.createElement('button');
