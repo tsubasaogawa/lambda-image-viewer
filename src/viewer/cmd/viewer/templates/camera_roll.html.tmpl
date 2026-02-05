@@ -214,9 +214,9 @@
       // Close modal when clicking X button
       modalClose.onclick = closeModal;
 
-      // Close modal when clicking outside the image
+      // Close modal when clicking the overlay background (not the content)
       modal.onclick = function(event) {
-        if (event.target === modal) {
+        if (event.target === modal || event.target.classList.contains('modal-content')) {
           closeModal();
         }
       };
@@ -289,7 +289,14 @@
         // Instead of a link, make it clickable to open modal
         const thumbnailClickable = document.createElement('div');
         thumbnailClickable.style.cursor = 'pointer';
+        thumbnailClickable.tabIndex = 0; // Make keyboard accessible
         thumbnailClickable.onclick = () => openModal(thumb);
+        thumbnailClickable.onkeydown = (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openModal(thumb);
+          }
+        };
 
         const img = document.createElement('img');
         img.dataset.src = `https://{{ $origin }}/thumbnail/${thumb.id}`;
