@@ -22,21 +22,6 @@ resource "aws_cloudfront_function" "access_token_auth" {
   )
 }
 
-resource "aws_cloudfront_origin_request_policy" "allow_querystring" {
-  name = "${replace(var.origin_domain, "/[^a-zA-Z0-9-_]/", "-")}-allow-querystring-policy"
-
-  query_strings_config {
-    query_string_behavior = "all"
-  }
-
-  cookies_config {
-    cookie_behavior = "none"
-  }
-
-  headers_config {
-    header_behavior = "none"
-  }
-}
 
 resource "random_password" "salt_for_private_image" {
   length  = 32
