@@ -43,6 +43,7 @@ package:
   individually: true
 
 plugins:
+  - serverless-better-credentials
   - serverless-go-plugin
   - serverless-prune-plugin
 
