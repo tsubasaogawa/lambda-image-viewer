@@ -415,19 +415,25 @@
           isLoading = false;
           if (lastEvaluatedKey) {
             updateLoaderVisibility(false);
+            loadMoreImagesIfNeeded();
           }
         }
       }
 
-      window.addEventListener('scroll', () => {
+      function loadMoreImagesIfNeeded() {
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - SCROLL_THRESHOLD) {
           fetchMoreImages();
         }
+      }
+
+      window.addEventListener('scroll', () => {
+        loadMoreImagesIfNeeded();
       });
 
       document.addEventListener('DOMContentLoaded', async function() {
         initializePrivateModeCheckbox();
         await renderThumbnails(initialThumbnailsData);
+        loadMoreImagesIfNeeded();
       });
     </script>
   </body>
