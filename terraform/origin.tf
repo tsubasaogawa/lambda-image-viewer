@@ -65,7 +65,7 @@ resource "aws_cloudfront_distribution" "origin" {
   price_class         = "PriceClass_All"
   retain_on_delete    = false
   wait_for_deployment = true
-  web_acl_id          = var.maintenance_web_acl_arn
+  web_acl_id          = var.origin_web_acl_arn
 
   default_cache_behavior {
     allowed_methods = [
