@@ -25,7 +25,13 @@ variable "cloudfront_public_key" {
 
 variable "maintenance_web_acl_arn" {
   type        = string
-  description = "Optional CloudFront WAF web ACL for restricting access during migration"
+  description = "Optional CloudFront WAF web ACL for restricting access during migration (viewer distribution)"
+  default     = null
+}
+
+variable "origin_web_acl_arn" {
+  type        = string
+  description = "Optional CloudFront WAF web ACL for the origin distribution"
   default     = null
 }
 
