@@ -69,9 +69,16 @@ func TestIndex(t *testing.T) {
 		{
 			name:             "path parsing error",
 			rawPath:          "/",
-			expectedStatus:   http.StatusInternalServerError,
-			expectedBody:     "path parsing error. path=/",
-			expectedErrorMsg: "path parsing error. path=/",
+			expectedStatus:   http.StatusBadRequest,
+			expectedBody:     "Invalid path",
+			expectedErrorMsg: "path parsing error: /",
+		},
+		{
+			name:             "path parsing error with xss attempt",
+			rawPath:          "//<script>alert(1)</script>",
+			expectedStatus:   http.StatusBadRequest,
+			expectedBody:     "Invalid path",
+			expectedErrorMsg: "path parsing error: //<script>alert(1)</script>",
 		},
 	}
 

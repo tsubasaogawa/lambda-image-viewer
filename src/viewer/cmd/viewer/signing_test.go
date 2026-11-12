@@ -225,3 +225,80 @@ func assertScriptValid(t *testing.T, body string) {
 		t.Fatalf("Rendered JavaScript is invalid: %v\n%s", err, output)
 	}
 }
+
+func TestSignerCaching(t *testing.T) {
+	resetSignerCache()
+	defer resetSignerCache()
+
+	origLoader := loadSignerFunc
+	defer func() { loadSignerFunc = origLoader }()
+
+	callCount := 0
+	loadSignerFunc = func() (privateURLSigner, error) {
+		callCount++
+		return mockSigner{}, nil
+	}
+
+	s1, err := getCachedPrivateURLSigner()
+	if err != nil || s1 == nil {
+		t.Fatalf("Expected signer, got %v, error: %v", s1, err)
+	}
+	if callCount != 1 {
+		t.Fatalf("Expected callCount=1, got %d", callCount)
+	}
+
+	for i := 0; i < 5; i++ {
+		s, err := getCachedPrivateURLSigner()
+		if err != nil || s != s1 {
+			t.Fatalf("Expected cached signer %v, got %v, error: %v", s1, s, err)
+		}
+	}
+	if callCount != 1 {
+		t.Fatalf("Expected callCount to remain 1, got %d", callCount)
+	}
+
+	resetSignerCache()
+
+	s2, err := getCachedPrivateURLSigner()
+	if err != nil || s2 == nil {
+		t.Fatalf("Expected signer after reset, got %v, error: %v", s2, err)
+	}
+	if callCount != 2 {
+		t.Fatalf("Expected callCount=2 after cache reset, got %d", callCount)
+	}
+}
+
+func TestSignerCachingErrorNotCached(t *testing.T) {
+	resetSignerCache()
+	defer resetSignerCache()
+
+	origLoader := loadSignerFunc
+	defer func() { loadSignerFunc = origLoader }()
+
+	fail := true
+	callCount := 0
+	loadSignerFunc = func() (privateURLSigner, error) {
+		callCount++
+		if fail {
+			return nil, errors.New("temporary error")
+		}
+		return mockSigner{}, nil
+	}
+
+	s, err := getCachedPrivateURLSigner()
+	if err == nil || s != nil {
+		t.Fatalf("Expected error, got %v", s)
+	}
+	if callCount != 1 {
+		t.Fatalf("Expected callCount=1, got %d", callCount)
+	}
+
+	fail = false
+	s, err = getCachedPrivateURLSigner()
+	if err != nil || s == nil {
+		t.Fatalf("Expected success on retry, got error: %v", err)
+	}
+	if callCount != 2 {
+		t.Fatalf("Expected callCount=2 on retry, got %d", callCount)
+	}
+}

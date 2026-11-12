@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -31,7 +32,43 @@ type cloudFrontURLSigner struct {
 	now    func() time.Time
 }
 
-var newPrivateURLSigner = loadPrivateURLSigner
+var (
+	signerCacheLock sync.RWMutex
+	cachedSigner    privateURLSigner
+	loadSignerFunc  = loadPrivateURLSigner
+
+	newPrivateURLSigner = getCachedPrivateURLSigner
+)
+
+func getCachedPrivateURLSigner() (privateURLSigner, error) {
+	signerCacheLock.RLock()
+	if cachedSigner != nil {
+		s := cachedSigner
+		signerCacheLock.RUnlock()
+		return s, nil
+	}
+	signerCacheLock.RUnlock()
+
+	signerCacheLock.Lock()
+	defer signerCacheLock.Unlock()
+
+	if cachedSigner != nil {
+		return cachedSigner, nil
+	}
+
+	signer, err := loadSignerFunc()
+	if err != nil {
+		return nil, err
+	}
+	cachedSigner = signer
+	return cachedSigner, nil
+}
+
+func resetSignerCache() {
+	signerCacheLock.Lock()
+	cachedSigner = nil
+	signerCacheLock.Unlock()
+}
 
 func loadPrivateURLSigner() (privateURLSigner, error) {
 	secretARN := os.Getenv("PRIVATE_SIGNING_KEY_SECRET_ARN")
