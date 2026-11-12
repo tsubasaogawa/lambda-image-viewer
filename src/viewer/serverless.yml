@@ -61,13 +61,17 @@ custom:
 functions:
   viewer:
     handler: cmd/viewer/*.go
-    url: true
+    url:
+      authorizer: aws_iam
+    role:
+      Fn::GetAtt: [ViewerExecutionRole, Arn]
     environment:
       REGION: ${env:REGION}
       ORIGIN_DOMAIN: ${env:ORIGIN_DOMAIN}
       VIEWER_DOMAIN: ${env:VIEWER_DOMAIN}
       TABLE: "${env:ORIGIN_DOMAIN}-item"
-      SALT_FOR_PRIVATE_IMAGE: ${ssm:/aws/reference/secretsmanager/${env:ORIGIN_DOMAIN}-salt-for-private-image, "DEPLOY_AGAIN_AFTER_APPLY"}
+      PRIVATE_SIGNING_KEY_SECRET_ARN: ${env:PRIVATE_SIGNING_KEY_SECRET_ARN}
+      CLOUDFRONT_SIGNING_KEY_ID: ${env:CLOUDFRONT_SIGNING_KEY_ID}
 
   tagger:
     handler: cmd/tagger/*.go
@@ -85,6 +89,13 @@ functions:
           event: "s3:ObjectCreated:*"
           rules:
             - prefix: ${self:custom.origin.eventTriggerPrefix}
+            - suffix: .jpg
+          existing: true
+      - s3:
+          bucket: ${env:ORIGIN_DOMAIN}
+          event: "s3:ObjectCreated:*"
+          rules:
+            - prefix: "private/"
             - suffix: .jpg
           existing: true
 
@@ -112,3 +123,38 @@ functions:
           rate: "cron(0 0 ? * SUN *)"
 
 useDotenv: true
+
+resources:
+  Resources:
+    ViewerExecutionRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: viewer-access
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                    - dynamodb:GetItem
+                    - dynamodb:Query
+                  Resource:
+                    - "arn:aws:dynamodb:${env:REGION}:${aws:accountId}:table/${env:ORIGIN_DOMAIN}-item"
+                    - "arn:aws:dynamodb:${env:REGION}:${aws:accountId}:table/${env:ORIGIN_DOMAIN}-item/index/*"
+                - Effect: Allow
+                  Action:
+                    - secretsmanager:GetSecretValue
+                  Resource: ${env:PRIVATE_SIGNING_KEY_SECRET_ARN}

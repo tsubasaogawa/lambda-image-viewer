@@ -13,6 +13,22 @@ variable "lambda_url" {
   description = "Lambda original endpoint url"
 }
 
+variable "lambda_function_name" {
+  type        = string
+  description = "Viewer Lambda function name"
+}
+
+variable "cloudfront_public_key" {
+  type        = string
+  description = "PEM-encoded CloudFront URL signing public key"
+}
+
+variable "maintenance_web_acl_arn" {
+  type        = string
+  description = "Optional CloudFront WAF web ACL for restricting access during migration"
+  default     = null
+}
+
 variable "basic_id" {
   type        = string
   description = "Basic auth ID"

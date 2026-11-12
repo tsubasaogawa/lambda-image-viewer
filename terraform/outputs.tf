@@ -29,3 +29,7 @@ output "route53_viewer_cloudfront_fqdn" {
 output "dynamodb_table_name" {
   value = aws_dynamodb_table.item.name
 }
+
+output "cloudfront_signing_key_id" {
+  value = aws_cloudfront_public_key.private_image.id
+}

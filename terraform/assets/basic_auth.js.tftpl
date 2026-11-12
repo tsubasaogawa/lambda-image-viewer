@@ -2,6 +2,10 @@ function handler(event) {
   const request = event.request;
   const headers = request.headers;
 
+  if (/%(?:2f|5c|25|2e)/i.test(request.uri) || /\\/.test(request.uri)) {
+    return { statusCode: 403, statusDescription: "Forbidden" };
+  }
+
   const authString = "Basic ${authString}";
 
   if (
@@ -17,5 +21,6 @@ function handler(event) {
     };
   }
 
+  delete headers.authorization;
   return request;
 }

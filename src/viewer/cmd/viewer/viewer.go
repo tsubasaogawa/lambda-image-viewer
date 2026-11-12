@@ -37,7 +37,11 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 	route := p[0]
 	var key string
 	if len(p) > 1 {
-		key = p[1]
+		var err error
+		key, err = url.PathUnescape(p[1])
+		if err != nil {
+			return responseHtml("Invalid path", 400, Headers{}), nil
+		}
 	}
 	log.Printf("route=%s, key=%s\n", route, key)
 
@@ -56,6 +60,10 @@ func Index(r events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse,
 		lastEvaluatedKey := q.Get("last_evaluated_key")
 		limit := q.Get("limit")
 		isPrivate := q.Get("private") == "true"
+
+		if key == "sign" {
+			return privateURLsHandler(q.Get("key"))
+		}
 
 		// If last_evaluated_key is present, it's an API call for the next page.
 		if lastEvaluatedKey != "" || limit != "" {

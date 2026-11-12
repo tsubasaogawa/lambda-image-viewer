@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -18,6 +19,27 @@ type mockDB struct {
 	thumbsToReturn  *[]model.Thumbnail
 	lastKeyToReturn dynamo.PagingKey
 	errToReturn     error
+}
+
+type mockSigner struct{}
+
+func (mockSigner) Sign(key string) (string, error) {
+	return "https://cdn.example/" + key + "?Expires=9999999999", nil
+}
+
+func mockPrivateSigner(t *testing.T) {
+	t.Helper()
+	original := newPrivateURLSigner
+	newPrivateURLSigner = func() (privateURLSigner, error) { return mockSigner{}, nil }
+	t.Cleanup(func() { newPrivateURLSigner = original })
+}
+
+func thumbnailsOnly(thumbs []CameraRollThumbnail) []model.Thumbnail {
+	result := make([]model.Thumbnail, len(thumbs))
+	for i := range thumbs {
+		result[i] = thumbs[i].Thumbnail
+	}
+	return result
 }
 
 func (m *mockDB) ListThumbnails(max int64, scanKey dynamo.PagingKey, isPrivate bool) (*[]model.Thumbnail, dynamo.PagingKey, error) {
@@ -61,7 +83,7 @@ func TestCameraRollHandler(t *testing.T) {
 		t.Fatalf("Failed to unmarshal response body: %v", err)
 	}
 
-	if !reflect.DeepEqual(body.Thumbnails, sortedThumbs) {
+	if !reflect.DeepEqual(thumbnailsOnly(body.Thumbnails), sortedThumbs) {
 		t.Errorf("Thumbnails not sorted correctly. Got %+v, want %+v", body.Thumbnails, sortedThumbs)
 	}
 
@@ -86,6 +108,7 @@ func TestCameraRollHandler_DBError(t *testing.T) {
 }
 
 func TestCameraRollHandler_PrivateMode(t *testing.T) {
+	mockPrivateSigner(t)
 	// Test that isPrivate flag is properly passed through
 	privateThumbs := []model.Thumbnail{
 		{Id: "private/img1.jpg", Timestamp: 100, Private: true},
@@ -113,8 +136,14 @@ func TestCameraRollHandler_PrivateMode(t *testing.T) {
 		t.Fatalf("Failed to unmarshal response body: %v", err)
 	}
 
-	if !reflect.DeepEqual(body.Thumbnails, privateThumbs) {
+	if !reflect.DeepEqual(thumbnailsOnly(body.Thumbnails), privateThumbs) {
 		t.Errorf("Private thumbnails not returned correctly. Got %+v, want %+v", body.Thumbnails, privateThumbs)
+	}
+	for i, thumb := range body.Thumbnails {
+		if thumb.ImageURL != fmt.Sprintf("https://cdn.example/%s?Expires=9999999999", privateThumbs[i].Id) ||
+			thumb.ThumbnailURL != fmt.Sprintf("https://cdn.example/thumbnail/%s?Expires=9999999999", privateThumbs[i].Id) {
+			t.Errorf("Missing private image URLs: %+v", thumb)
+		}
 	}
 }
 
@@ -146,7 +175,7 @@ func TestCameraRollHandler_PublicMode(t *testing.T) {
 		t.Fatalf("Failed to unmarshal response body: %v", err)
 	}
 
-	if !reflect.DeepEqual(body.Thumbnails, publicThumbs) {
+	if !reflect.DeepEqual(thumbnailsOnly(body.Thumbnails), publicThumbs) {
 		t.Errorf("Public thumbnails not returned correctly. Got %+v, want %+v", body.Thumbnails, publicThumbs)
 	}
 }
@@ -179,7 +208,7 @@ func TestCameraRollHandler_UnsortedData(t *testing.T) {
 		t.Fatalf("Failed to unmarshal response body: %v", err)
 	}
 
-	if !reflect.DeepEqual(body.Thumbnails, sortedThumbs) {
+	if !reflect.DeepEqual(thumbnailsOnly(body.Thumbnails), sortedThumbs) {
 		t.Errorf("Thumbnails not sorted correctly. Got %+v, want %+v", body.Thumbnails, sortedThumbs)
 	}
 }

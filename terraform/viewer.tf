@@ -6,6 +6,7 @@ resource "aws_cloudfront_distribution" "viewer" {
   price_class         = "PriceClass_All"
   retain_on_delete    = false
   wait_for_deployment = true
+  web_acl_id          = var.maintenance_web_acl_arn
 
   default_cache_behavior {
     allowed_methods = [
@@ -22,37 +23,44 @@ resource "aws_cloudfront_distribution" "viewer" {
     response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63" # CORS-with-preflight-and-SecurityHeadersPolicy
     smooth_streaming           = false
     target_origin_id           = var.lambda_url
-    viewer_protocol_policy     = "allow-all"
-  }
-
-  ordered_cache_behavior {
-    path_pattern = "/cameraroll/*" # TODO: to envvar
-    allowed_methods = [
-      "GET",
-      "HEAD",
-    ]
-    cache_policy_id = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
-    cached_methods = [
-      "GET",
-      "HEAD",
-    ]
-    compress                   = true
-    origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # Managed-AllViewerExceptHostHeader
-    response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63" # CORS-with-preflight-and-SecurityHeadersPolicy
-    smooth_streaming           = false
-    target_origin_id           = var.lambda_url
-    viewer_protocol_policy     = "allow-all"
+    viewer_protocol_policy     = "redirect-to-https"
     function_association {
       event_type   = "viewer-request"
-      function_arn = aws_cloudfront_function.basic_auth.arn
+      function_arn = aws_cloudfront_function.private_path_guard.arn
+    }
+  }
+
+  dynamic "ordered_cache_behavior" {
+    for_each = [
+      "/cameraroll*",
+      "/image/private/*",
+      "/image/*/private/*",
+      "/metadata/private/*",
+      "/metadata/*/private/*",
+    ]
+    content {
+      path_pattern               = ordered_cache_behavior.value
+      allowed_methods            = ["GET", "HEAD"]
+      cached_methods             = ["GET", "HEAD"]
+      cache_policy_id            = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
+      compress                   = true
+      origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+      response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
+      target_origin_id           = var.lambda_url
+      viewer_protocol_policy     = "https-only"
+      function_association {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.basic_auth.arn
+      }
     }
   }
 
   origin {
-    connection_attempts = 3
-    connection_timeout  = 10
-    domain_name         = var.lambda_url
-    origin_id           = var.lambda_url
+    connection_attempts      = 3
+    connection_timeout       = 10
+    domain_name              = var.lambda_url
+    origin_id                = var.lambda_url
+    origin_access_control_id = aws_cloudfront_origin_access_control.viewer.id
 
     custom_origin_config {
       http_port                = 80
@@ -79,6 +87,30 @@ resource "aws_cloudfront_distribution" "viewer" {
     minimum_protocol_version       = "TLSv1.2_2021"
     ssl_support_method             = "sni-only"
   }
+}
+
+resource "aws_cloudfront_origin_access_control" "viewer" {
+  name                              = "${var.viewer_domain}-oac"
+  origin_access_control_origin_type = "lambda"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+resource "aws_lambda_permission" "viewer_cloudfront_url" {
+  statement_id           = "AllowCloudFrontFunctionURL"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = var.lambda_function_name
+  principal              = "cloudfront.amazonaws.com"
+  source_arn             = aws_cloudfront_distribution.viewer.arn
+  function_url_auth_type = "AWS_IAM"
+}
+
+resource "aws_lambda_permission" "viewer_cloudfront_invoke" {
+  statement_id  = "AllowCloudFrontFunctionInvocation"
+  action        = "lambda:InvokeFunction"
+  function_name = var.lambda_function_name
+  principal     = "cloudfront.amazonaws.com"
+  source_arn    = aws_cloudfront_distribution.viewer.arn
 }
 
 resource "aws_route53_zone" "viewer" {

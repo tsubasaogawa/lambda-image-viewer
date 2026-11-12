@@ -3,7 +3,6 @@ package model
 import (
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 )
 
@@ -48,9 +47,9 @@ func TestPrivateFieldDetection(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "Private image at start needs leading slash",
+			name:     "Private image at start",
 			id:       "private/img3.jpg",
-			expected: false,
+			expected: true,
 		},
 		{
 			name:     "Private image with leading slash",
@@ -62,16 +61,17 @@ func TestPrivateFieldDetection(t *testing.T) {
 			id:       "photos/img4.jpg",
 			expected: false,
 		},
+		{
+			name:     "Private prefix in a different directory name",
+			id:       "photos/private-images/img4.jpg",
+			expected: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			thumb := Thumbnail{Id: tt.id}
-			// Simulate the logic used in ListThumbnails
-			thumb.Private = strings.Contains(thumb.Id, "/private/")
-			
-			if thumb.Private != tt.expected {
-				t.Errorf("Expected Private=%v for ID=%s, got %v", tt.expected, tt.id, thumb.Private)
+			if got := IsPrivateKey(tt.id); got != tt.expected {
+				t.Errorf("Expected Private=%v for ID=%s, got %v", tt.expected, tt.id, got)
 			}
 		})
 	}
