@@ -2,7 +2,6 @@ package model
 
 import (
 	"strconv"
-	"strings"
 
 	"github.com/guregu/dynamo"
 )
@@ -34,7 +33,7 @@ func (t *Table) ListThumbnails(max int64, scanKey dynamo.PagingKey, isPrivate bo
 	}
 
 	for i := range thumbs {
-		thumbs[i].Private = strings.Contains(thumbs[i].Id, "/private/")
+		thumbs[i].Private = IsPrivateKey(thumbs[i].Id)
 	}
 
 	return &thumbs, lastKey, nil

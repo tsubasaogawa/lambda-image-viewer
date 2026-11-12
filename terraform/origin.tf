@@ -3,10 +3,10 @@ module "origin" {
   version = "3.13.0"
 
   bucket                   = var.origin_domain
-  block_public_policy      = false
-  block_public_acls        = false
-  ignore_public_acls       = false
-  restrict_public_buckets  = false
+  block_public_policy      = true
+  block_public_acls        = true
+  ignore_public_acls       = true
+  restrict_public_buckets  = true
   control_object_ownership = true
   object_ownership         = "BucketOwnerEnforced"
 
@@ -23,14 +23,6 @@ resource "aws_s3_object" "metadata_fetcher" {
   key          = "assets/metadata_fetcher.js"
   content      = replace(file("assets/metadata_fetcher.js.tftpl"), "$${TF_API_ENDPOINT}", var.viewer_domain)
   source_hash  = filemd5("assets/metadata_fetcher.js.tftpl")
-  content_type = "text/javascript"
-}
-
-resource "aws_s3_object" "generate_access_token" {
-  bucket       = module.origin.s3_bucket_id
-  key          = "assets/generate_access_token.js"
-  content      = file("assets/generate_access_token.js")
-  source_hash  = filemd5("assets/generate_access_token.js")
   content_type = "text/javascript"
 }
 
@@ -61,7 +53,7 @@ resource "aws_cloudfront_origin_access_control" "origin" {
   name                              = "${var.origin_domain}-oac"
   description                       = "OAC for S3 origin bucket"
   origin_access_control_origin_type = "s3"
-  signing_behavior                  = "no-override"
+  signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
 }
 
@@ -73,6 +65,7 @@ resource "aws_cloudfront_distribution" "origin" {
   price_class         = "PriceClass_All"
   retain_on_delete    = false
   wait_for_deployment = true
+  web_acl_id          = var.maintenance_web_acl_arn
 
   default_cache_behavior {
     allowed_methods = [
@@ -88,33 +81,34 @@ resource "aws_cloudfront_distribution" "origin" {
     response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63" # CORS-with-preflight-and-SecurityHeadersPolicy
     smooth_streaming           = false
     target_origin_id           = module.origin.s3_bucket_id
-    viewer_protocol_policy     = "allow-all"
-  }
-
-  ordered_cache_behavior {
-    path_pattern = "*/private/*" # TODO: to envvar
-    allowed_methods = [
-      "GET",
-      "HEAD",
-    ]
-    cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
-    cached_methods = [
-      "GET",
-      "HEAD",
-    ]
-    origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # Managed-AllViewerExceptHostHeader
-    response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63" # CORS-with-preflight-and-SecurityHeadersPolicy
-    smooth_streaming           = false
-    target_origin_id           = module.origin.s3_bucket_id
-    viewer_protocol_policy     = "allow-all"
+    viewer_protocol_policy     = "redirect-to-https"
     function_association {
       event_type   = "viewer-request"
-      function_arn = aws_cloudfront_function.access_token_auth.arn
+      function_arn = aws_cloudfront_function.private_path_guard.arn
+    }
+  }
+
+  dynamic "ordered_cache_behavior" {
+    for_each = ["private/*", "*/private/*"]
+    content {
+      path_pattern               = ordered_cache_behavior.value
+      allowed_methods            = ["GET", "HEAD"]
+      cached_methods             = ["GET", "HEAD"]
+      cache_policy_id            = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+      origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+      response_headers_policy_id = "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
+      target_origin_id           = module.origin.s3_bucket_id
+      viewer_protocol_policy     = "https-only"
+      trusted_key_groups         = [aws_cloudfront_key_group.private_image.id]
+      function_association {
+        event_type   = "viewer-response"
+        function_arn = aws_cloudfront_function.private_cache_headers.arn
+      }
     }
   }
 
   origin {
-    domain_name              = module.origin.s3_bucket_bucket_domain_name
+    domain_name              = module.origin.s3_bucket_bucket_regional_domain_name
     origin_id                = module.origin.s3_bucket_id
     origin_access_control_id = aws_cloudfront_origin_access_control.origin.id
   }

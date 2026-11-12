@@ -83,7 +83,7 @@ func ProcessS3Object(svc *s3.S3, bucket, key string) error {
 	}
 
 	meta.Id = key
-	meta.IsPrivate = strconv.FormatBool(strings.Contains(key, "/private/"))
+	meta.IsPrivate = strconv.FormatBool(model.IsPrivateKey(key))
 	fmt.Printf("%#v", *meta)
 
 	if err := model.New().PutMetadata(meta); err != nil {

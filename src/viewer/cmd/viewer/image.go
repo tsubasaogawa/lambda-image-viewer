@@ -1,9 +1,7 @@
 package main
 
 import (
-	"crypto/sha256"
 	_ "embed"
-	"encoding/hex"
 	"fmt"
 	"html/template"
 	"log"
@@ -17,6 +15,8 @@ import (
 type Image struct {
 	Url      string
 	Metadata model.Metadata
+	Private  bool
+	Key      string
 }
 
 var (
@@ -31,20 +31,33 @@ func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
 	}
 
-	meta, err := model.New().GetMetadata(key)
+	meta, err := getMetadata(key)
 	if err != nil {
 		log.Println("obtaining metadata error. viewer uses empty metadata.")
 		meta = &model.Metadata{}
 	}
 
-	query := ""
-	if strings.Contains(key, "/private/") {
-		query = fmt.Sprintf("?token=%s", generateToken("/"+key))
+	imageURL := fmt.Sprintf("https://%s/%s", os.Getenv("ORIGIN_DOMAIN"), key)
+	cacheControl := "public, max-age=31536000"
+	if model.IsPrivateKey(key) {
+		signer, err := newPrivateURLSigner()
+		if err != nil {
+			log.Printf("Failed to load signing key: %v", err)
+			return responseHtml("Internal server error", 500, Headers{"Cache-Control": "private, no-store"}), err
+		}
+		imageURL, err = signer.Sign(key)
+		if err != nil {
+			log.Printf("Failed to sign private image: %v", err)
+			return responseHtml("Internal server error", 500, Headers{"Cache-Control": "private, no-store"}), err
+		}
+		cacheControl = "private, no-store"
 	}
 
 	image := Image{
-		Url:      fmt.Sprintf("https://%s/%s%s", os.Getenv("ORIGIN_DOMAIN"), key, query),
+		Url:      imageURL,
 		Metadata: *meta,
+		Private:  model.IsPrivateKey(key),
+		Key:      key,
 	}
 
 	w := new(strings.Builder)
@@ -54,11 +67,5 @@ func generateImageHtml(key string) (events.LambdaFunctionURLResponse, error) {
 		return responseHtml(msg, 500, Headers{}), fmt.Errorf(msg)
 	}
 
-	return responseHtml(w.String(), 200, Headers{"Cache-Control": "public, max-age=31536000"}), nil
-}
-
-func generateToken(key string) string {
-	salt := os.Getenv("SALT_FOR_PRIVATE_IMAGE")
-	hash := sha256.Sum256([]byte(key + salt))
-	return hex.EncodeToString(hash[:])
+	return responseHtml(w.String(), 200, Headers{"Cache-Control": cacheControl}), nil
 }

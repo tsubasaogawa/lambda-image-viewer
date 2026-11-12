@@ -2,6 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
+    <meta name="referrer" content="no-referrer">
     <title>Camera Roll</title>
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
     <style media="screen">
@@ -160,9 +161,7 @@
         <a id="modalViewerLink" href="#" class="modal-link-button" target="_blank">Open in Image Viewer</a>
       </div>
     </div>
-    <script src="https://{{ $origin }}/assets/generate_access_token.js"></script>
     <script>
-      const salt = "{{ .SaltForPrivateImage }}";
       let lastEvaluatedKey = "{{ .LastKey }}";
       let isLoading = false;
       const THUMBNAIL_WIDTH = 133;
@@ -187,23 +186,47 @@
       const modalViewerLink = document.getElementById('modalViewerLink');
       const modalClose = document.querySelector('.modal-close');
 
+      function imagePath(key) {
+        return key.split('/').map(encodeURIComponent).join('/');
+      }
+
+      async function refreshPrivateURLs(thumb, force = false) {
+        const expires = thumb.image_url && new URL(thumb.image_url).searchParams.get('Expires');
+        if (!force && expires && Number(expires) > Date.now() / 1000 + 30) return;
+        const endpoint = new URL('/cameraroll/sign', window.location.origin);
+        endpoint.searchParams.set('key', thumb.id);
+        const response = await fetch(endpoint, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Failed to refresh image URL: ${response.status}`);
+        const urls = await response.json();
+        thumb.image_url = urls.image_url;
+        thumb.thumbnail_url = urls.thumbnail_url;
+      }
+
       async function openModal(thumb) {
-        // Set the viewer link
-        modalViewerLink.href = `https://{{ $viewer }}/image/${thumb.id}`;
-        
-        // Set the image source (full size or original image)
-        let imageSrc = `https://{{ $origin }}/${thumb.id}`;
-        
-        // If private, generate token
-        if (isPrivate && thumb.private) {
-          const url = new URL(imageSrc);
-          const key = url.pathname;
-          const token = await generateToken(key, salt);
-          imageSrc += `?token=${token}`;
+        try {
+          modalViewerLink.href = `https://{{ $viewer }}/image/${imagePath(thumb.id)}`;
+          if (thumb.private) await refreshPrivateURLs(thumb);
+          let retried = false;
+          modalImage.onerror = async () => {
+            if (!thumb.private || retried) {
+              updateLoaderVisibility(true, 'Failed to load image. Please try again.');
+              return;
+            }
+            retried = true;
+            try {
+              await refreshPrivateURLs(thumb, true);
+              modalImage.src = thumb.image_url;
+            } catch (error) {
+              console.error(error);
+              updateLoaderVisibility(true, 'Failed to load image. Please try again.');
+            }
+          };
+          modalImage.src = thumb.private ? thumb.image_url : `https://{{ $origin }}/${imagePath(thumb.id)}`;
+          modal.style.display = 'block';
+        } catch (error) {
+          console.error(error);
+          updateLoaderVisibility(true, 'Failed to load image. Please try again.');
         }
-        
-        modalImage.src = imageSrc;
-        modal.style.display = 'block';
       }
 
       function closeModal() {
@@ -253,7 +276,9 @@
               timestamp: {{ $thumb.Timestamp }},
               private: {{ $thumb.Private }},
               width: {{ $thumb.Width }},
-              height: {{ $thumb.Height }}
+              height: {{ $thumb.Height }},
+              image_url: "{{ $thumb.ImageURL }}",
+              thumbnail_url: "{{ $thumb.ThumbnailURL }}"
             },
           {{ end }}
         {{ end }}
@@ -299,12 +324,13 @@
         };
 
         const img = document.createElement('img');
-        img.dataset.src = `https://{{ $origin }}/thumbnail/${thumb.id}`;
+        img.dataset.src = `https://{{ $origin }}/thumbnail/${imagePath(thumb.id)}`;
         img.width = THUMBNAIL_WIDTH;
         img.height = THUMBNAIL_HEIGHT;
         img.classList.add('thumbnailImage');
         img.dataset.private = thumb.private;
         img.loading = 'lazy';
+        img.thumbnailData = thumb;
 
         thumbnailClickable.appendChild(img);
         thumbnailBox.appendChild(thumbnailClickable);
@@ -360,28 +386,37 @@
 
       async function loadVisibleImages() {
           const images = document.querySelectorAll('img.thumbnailImage:not([src])');
-          const imagePromises = [];
-          for (const img of images) {
-              if (isPrivate) {
-                  const url = new URL(img.dataset.src);
-                  const key = url.pathname;
-                  const tokenPromise = generateToken(key, salt).then(token => {
-                      const imageUrl = new URL(img.dataset.src);
-                      imageUrl.searchParams.set('token', token);
-                      img.src = imageUrl.toString();
-                  });
-                  imagePromises.push(tokenPromise);
-              } else {
-                  img.src = img.dataset.src;
+          await Promise.all(Array.from(images, async (img) => {
+            const thumb = img.thumbnailData;
+            if (!thumb.private) {
+              img.src = img.dataset.src;
+              return;
+            }
+            await refreshPrivateURLs(thumb);
+            let retried = false;
+            img.onerror = async () => {
+              if (retried) {
+                updateLoaderVisibility(true, 'Failed to load thumbnail. Please try again.');
+                return;
               }
-          }
-          await Promise.all(imagePromises);
+              retried = true;
+              try {
+                await refreshPrivateURLs(thumb, true);
+                img.src = thumb.thumbnail_url;
+              } catch (error) {
+                console.error(error);
+                updateLoaderVisibility(true, 'Failed to load thumbnail. Please try again.');
+              }
+            };
+            img.src = thumb.thumbnail_url;
+          }));
       }
 
       async function fetchMoreImages() {
         if (isLoading || !lastEvaluatedKey) return;
 
         isLoading = true;
+        let succeeded = false;
         updateLoaderVisibility(true);
 
         try {
@@ -408,12 +443,13 @@
           if (!lastEvaluatedKey) {
             updateLoaderVisibility(true, 'No more images.');
           }
+          succeeded = true;
         } catch (error) {
           console.error('Failed to fetch more images:', error);
           updateLoaderVisibility(true, 'Failed to load images. Please try again later.');
         } finally {
           isLoading = false;
-          if (lastEvaluatedKey) {
+          if (lastEvaluatedKey && succeeded) {
             updateLoaderVisibility(false);
             loadMoreImagesIfNeeded();
           }
@@ -432,8 +468,13 @@
 
       document.addEventListener('DOMContentLoaded', async function() {
         initializePrivateModeCheckbox();
-        await renderThumbnails(initialThumbnailsData);
-        loadMoreImagesIfNeeded();
+        try {
+          await renderThumbnails(initialThumbnailsData);
+          loadMoreImagesIfNeeded();
+        } catch (error) {
+          console.error(error);
+          updateLoaderVisibility(true, 'Failed to load thumbnails. Please reload the page.');
+        }
       });
     </script>
   </body>

@@ -2,6 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
+    <meta name="referrer" content="no-referrer">
     <title>{{ .Metadata.Title }}</title>
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
     <style media="screen">
@@ -75,6 +76,28 @@
   <script>
     const dt = new Date({{ .Metadata.Timestamp }} * 1000);
     document.querySelector('.timestamp').insertAdjacentText('afterbegin', `Shot on ${dt.toUTCString().replace('GMT', '')}`);
+    {{ if .Private }}
+    const privateImage = document.querySelector('#image-container img');
+    let retried = false;
+    privateImage.onerror = async function () {
+      if (retried) {
+        privateImage.alt = 'Failed to load image. Please reload the page.';
+        return;
+      }
+      retried = true;
+      try {
+        const endpoint = new URL('/cameraroll/sign', window.location.origin);
+        endpoint.searchParams.set('key', {{ .Key }});
+        const response = await fetch(endpoint, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Failed to refresh image URL: ${response.status}`);
+        const urls = await response.json();
+        privateImage.src = urls.image_url;
+      } catch (error) {
+        console.error(error);
+        privateImage.alt = 'Failed to load image. Please reload the page.';
+      }
+    };
+    {{ end }}
   </script>
   </body>
 </html>

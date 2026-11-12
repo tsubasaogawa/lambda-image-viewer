@@ -9,12 +9,20 @@ import (
 	"github.com/tsubasaogawa/lambda-image-viewer/src/viewer/internal/model"
 )
 
+var getMetadata = func(key string) (*model.Metadata, error) {
+	return model.New().GetMetadata(key)
+}
+
 func generateMetadataJson(key string) (events.LambdaFunctionURLResponse, error) {
-	meta, err := model.New().GetMetadata(key)
+	meta, err := getMetadata(key)
 	if err != nil {
 		msg := fmt.Sprintf(`{"error": "obtaining metadata error, but skips that", "details": "%s"}`, err.Error())
 		log.Println(msg)
-		return responseJson("{}", 200, Headers{}), nil
+		headers := Headers{}
+		if model.IsPrivateKey(key) {
+			headers["Cache-Control"] = "private, no-store"
+		}
+		return responseJson("{}", 200, headers), nil
 		// return responseJson(msg, 500), fmt.Errorf(msg)
 	}
 
@@ -24,5 +32,9 @@ func generateMetadataJson(key string) (events.LambdaFunctionURLResponse, error) 
 		return responseJson(msg, 500, Headers{}), fmt.Errorf(msg)
 	}
 
-	return responseJson(string(_json), 200, Headers{"Cache-Control": "public, max-age=31536000"}), nil
+	cacheControl := "public, max-age=31536000"
+	if model.IsPrivateKey(key) {
+		cacheControl = "private, no-store"
+	}
+	return responseJson(string(_json), 200, Headers{"Cache-Control": cacheControl}), nil
 }

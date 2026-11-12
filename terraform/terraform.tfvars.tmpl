@@ -4,6 +4,13 @@ viewer_domain=""
 
 # Lambda Function URLs endpoint which you can confirm by `serverless info` command
 lambda_url=""
+lambda_function_name=""
+
+# Public key only. Store the corresponding private key in Secrets Manager.
+cloudfront_public_key=""
+
+# Optional CloudFront WAF web ACL to block access during migration.
+maintenance_web_acl_arn=null
 
 # Basic auth id/password for cameraroll
 basic_id=""
